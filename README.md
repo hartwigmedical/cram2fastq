@@ -1,5 +1,7 @@
 # cram2fastq
-Convert CRAM files stored in GCP to FASTQ.
+Run these scripts as a docker container to produce FASTQ files and upload them back to GCP. We'll do everything from our laptops as a 
+first step.
+  
 
 #### Make a branch first!
 
