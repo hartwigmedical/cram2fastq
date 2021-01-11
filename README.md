@@ -3,11 +3,22 @@ Run these scripts as a docker container to produce FASTQ files and upload them b
 first step.
   
 
-#### Make a branch first!
+#### Git Stuff
+
+Make a branch before your start.
 
 ```shell script
 git checkout -b your_name
 ```
+
+When you're ready to share some work (even as a work in progress) create a PR
+
+```shell script
+git commit 
+git push origin remote
+```
+
+Log into the GitHub UI and there should be a handy button telling you to create a PR. From there you can add reviewers.
 
 #### Docker Basics
 
