@@ -56,6 +56,6 @@ docker logs [container id]
 Poke around
 
 ```shell script
-docker run -it -v /Users/pwolfe/.config/gcloud/:/root/.config/gcloud/ --entrypoint /bin/sh hmf-build/cram2fastq:latest
+docker run -it -v /your/home/.config/gcloud/:/root/.config/gcloud/ --entrypoint /bin/sh hmf-build/cram2fastq:latest
 ```
 
