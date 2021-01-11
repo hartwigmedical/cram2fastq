@@ -14,11 +14,11 @@ git checkout -b your_name
 When you're ready to share some work (even as a work in progress) create a PR
 
 ```shell script
-git commit 
-git push origin remote
+git commit -a
+git push origin master
 ```
 
-Log into the GitHub UI and there should be a handy button telling you to create a PR. From there you can add reviewers.
+Log into the GitHub UI and there should be a button telling you to create a PR. From there you can add reviewers.
 
 #### Docker Basics
 
