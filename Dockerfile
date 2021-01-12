@@ -7,6 +7,6 @@ RUN apt-get --yes install picard-tools
 
 ADD cram2fastq cram2fastq
 ADD cram2bam cram2bam
-ADD cram2fastq cram2fastq
+ADD bam2fastq bam2fastq
 
 ENTRYPOINT ["./cram2fastq"]
