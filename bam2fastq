@@ -3,7 +3,6 @@
 in_bam=$1 && shift
 
 picard_dir="${PICARDDIR}"
-samtools="${SAMTOOLSPATH}"
 
 ## use 80 percent of available threads and memory
 threads=$( expr "$(grep -c processor /proc/cpuinfo)" / 10 \* 8)
@@ -17,7 +16,6 @@ if [[ "${in_bam}" == "-h" || "${in_bam}" == "--help" ]]; then
     echo "-----"
     echo " Usage: $(basename $0) <BAM_FILE>"
     echo " Using Picard dir ${picard_dir}"
-    echo " Using Samtools path ${samtools}"
     echo "-----"
     exit 1
 fi
@@ -25,17 +23,16 @@ fi
 ## ---------------
 ## sanity checks
 if [[ ! -d "${picard_dir}" ]]; then echo "[ERROR] Picard dir not found (${picard_dir})"; exit 1; fi
-if [[ ! -f "${samtools}" ]]; then echo "[ERROR] Samtools not found (${samtools})"; exit 1; fi
 if [[ ! -f "${in_bam}" ]]; then echo "[ERROR] Bam file not found (${in_bam})"; exit 1; fi
 if [[ ! -w "$(dirname "${out_dir}")" ]]; then echo "[ERROR] Output dir not writable?"; exit 1; fi
 
 ## ---------------
 
 ## Check format of RG/ID tags in header
-correct_lane_count=$(${samtools} view -H "${in_bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
+correct_lane_count=$(samtools view -H "${in_bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
 if [[ ${correct_lane_count} -gt 1 ]]; then
     echo "[ERROR] There are RG ID header lines in BAM without the expected pattern (_L00[1-8]_):"
-    ${samtools} view -H ${in_bam} | grep ^@RG
+    samtools view -H ${in_bam} | grep ^@RG
     exit 1
 fi
 

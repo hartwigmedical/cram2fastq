@@ -7,7 +7,6 @@ RUN apt-get --yes install samtools
 
 ENV BASEPATH=/home/dockerguy
 ENV PATH=$PATH:$BASEPATH
-ENV SAMTOOLSPATH=$BASEPATH/"samtools"
 ENV PICARDDIR=$BASEPATH/"picard-tools_v1.141"
 
 WORKDIR $BASEPATH
