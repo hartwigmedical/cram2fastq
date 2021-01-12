@@ -9,10 +9,6 @@ samtools --version
 ## use 80 percent of available threads and memory
 threads=$( expr "$(grep -c processor /proc/cpuinfo)" / 10 \* 8)
 
-#bam_dirname=$(dirname "${in_bam}")
-#bam_basename=$(basename "${in_bam}")
-#sample_name=$(echo "${bam_basename}" | cut -d"." -f1 | cut -d"_" -f1)
-#out_dir="${bam_dirname}/${sample_name}_FASTQ"
 out_dir=./fastq
 
 if [[ "${in_bam}" == "-h" || "${in_bam}" == "--help" ]]; then
@@ -57,7 +53,10 @@ for fastq_path in "${out_dir}"/*fastq; do
     echo "[INFO] ${fastq_old} renamed to ${fastq_new}"
 done
 
+ls "${out_dir}"
+
 echo "[INFO] gzipping fastq files...(using pigz)"
+ls "${out_dir}"/*.fastq
 pigz -p ${threads} "${out_dir}"/*.fastq
 
 echo "[INFO] Output fastq can be found in ${out_dir}"
