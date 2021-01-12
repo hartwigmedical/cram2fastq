@@ -26,6 +26,6 @@ fi
 ./bam2fastq "${bam}"
 
 # At the end you can copy your fastq back into GCS in this location
-gsutil -m cp ./*.fastq.gz gs://hmf-cram2fastq/fastq/stef/
+gsutil -m cp ./output/*.fastq.gz gs://hmf-cram2fastq/fastq/stef/
 
 echo "[INFO] Finished with cram2fastq" 

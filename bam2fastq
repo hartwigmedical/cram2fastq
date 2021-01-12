@@ -8,12 +8,14 @@ in_bam=$1 && shift
 threads=3
 
 bam_dirname=$(dirname "${in_bam}")
-out_dir="${bam_dirname}"
+out_dir="${bam_dirname}/output"
+
+mkdir -p "${out_dir}"
 
 ## ---------------
 ## sanity checks
 if [[ ! -f "${in_bam}" ]]; then echo "[ERROR] Bam file not found (${in_bam})"; exit 1; fi
-if [[ ! -w "$(dirname "${out_dir}")" ]]; then echo "[ERROR] Output dir not writable?"; exit 1; fi
+if [[ ! -w "${out_dir}" ]]; then echo "[ERROR] Output dir not writeable (${out_dir})"; exit 1; fi
 
 ## ---------------
 
@@ -29,16 +31,16 @@ echo "[INFO] Running SamToFastq for bam file: $(basename "${in_bam}")"
 PicardCommandLine SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
 
 echo "[INFO] About to rename fastq files"
-find ${out_dir} -name "*.fastq" | while read fastq_path; do
+find "${out_dir}" -name "*.fastq" | while read fastq_path; do
     fastq_old=$(basename "${fastq_path}")
     fastq_new=$(echo "${fastq_old}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
-   
-    mv "${fastq_path}" "${out_dir}"/"${fastq_new}"
+    mv "${fastq_path}" "${out_dir}/${fastq_new}"
     echo "[INFO] ${fastq_old} renamed to ${fastq_new}"
 done
 
 echo "[INFO] gzipping fastq files...(using pigz)"
-pigz -p ${threads} "${out_dir}"/*.fastq
+find "${out_dir}" -name "*.fastq" -exec pigz {} +
 
 echo "[INFO] Output fastq can be found in ${out_dir}"
+
 ls "${out_dir}"
