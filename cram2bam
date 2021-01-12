@@ -10,7 +10,9 @@ fi
 cram=$1
 
 ## use 80 percent of available threads
-threads=$( expr $(grep -c processor /proc/cpuinfo) / 10 \* 8)
+#threads=$( expr $(grep -c processor /proc/cpuinfo) / 10 \* 8)
+
+threads=3
 samtools="samtools"
 
 main() {

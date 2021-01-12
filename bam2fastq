@@ -3,7 +3,9 @@
 in_bam=$1 && shift
 
 ## use 80 percent of available threads and memory
-threads=$( expr "$(grep -c processor /proc/cpuinfo)" / 10 \* 8)
+#threads=$( expr "$(grep -c processor /proc/cpuinfo)" / 10 \* 8)
+
+threads=3
 
 bam_dirname=$(dirname "${in_bam}")
 out_dir="${bam_dirname}"
@@ -23,20 +25,11 @@ if [[ ${correct_lane_count} -gt 1 ]]; then
     exit 1
 fi
 
-if [[ -d "${out_dir}" ]]; then
-    echo "[ERROR] output dir exists, will not overwrite"
-    exit 1
-else
-    echo "[INFO] Creating output dir (${out_dir})";
-    mkdir "${out_dir}";
-fi
-
 echo "[INFO] Running SamToFastq for bam file: $(basename "${in_bam}")"
-#java -Xmx50G -jar "${picard_dir}"/picard.jar SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
 PicardCommandLine SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
 
 echo "[INFO] About to rename fastq files"
-for fastq_path in "${out_dir}"/*fastq; do
+find ${out_dir} -name "*.fastq" | while read fastq_path; do
     fastq_old=$(basename "${fastq_path}")
     fastq_new=$(echo "${fastq_old}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
    
