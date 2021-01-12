@@ -17,6 +17,8 @@ echo "[INFO] Starting with cram2fastq [${cram}]"
 if [[ "${cram}" =~ ^gs ]]; then
     echo "[INFO] Downloading cram file from GCP [${cram}]"
     gsutil -m cp "${cram}" ./
+    cram=$(basename "${cram}")
+    bam=$(echo "${cram}" | sed 's/cram$/bam/')
 fi
 
 cram2bam "${cram}"
@@ -24,6 +26,6 @@ cram2bam "${cram}"
 bam2fastq "${bam}"
 
 # At the end you can copy your fastq back into GCS in this location
-gsutil -m cp output*.fastq.gz gs://hmf-cram2fastq/fastq/stef/
+#gsutil -m cp output*.fastq.gz gs://hmf-cram2fastq/fastq/stef/
 
 echo "[INFO] Finished with cram2fastq" 
