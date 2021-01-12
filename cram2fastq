@@ -10,17 +10,21 @@ if [[ -z "$1" || "$1" == "-h" || "$1" == "--help" ]]; then
 fi
 
 cram=$1
-bam=$(echo "${cram}" | sed 's/cram$/bam/')
 
 echo "[INFO] Starting with cram2fastq [${cram}]"
 
 gsutil -m cp ${cram} ./
 
-cram2bam "${cram}"
+cram_donwloaded=./${cram##*/}
+./cram2bam "${cram_donwloaded}"
 
-bam2fastq "${bam}"
+bam=$(echo "${cram}" | sed 's/cram$/bam/')
+./bam2fastq "${bam}"
 
 # At the end you can copy your fastq back into GCS in this location
-gsutil -m cp output*.fastq.gz gs://hmf-cram2fastq/fastq/your_name/
+gsutil -m cp ./output/*.fastq.gz gs://hmf-cram2fastq/fastq/sandra/
+rm -r ./output
 
-echo "[INFO] Finished with cram2fastq" 
+echo "[INFO] Finished with cram2fastq"
+
+
