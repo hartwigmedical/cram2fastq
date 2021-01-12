@@ -15,7 +15,7 @@ When you're ready to share some work (even as a work in progress) create a PR
 
 ```shell script
 git commit -a
-git push origin master
+git push origin your_name
 ```
 
 Log into the GitHub UI and there should be a button telling you to create a PR. From there you can add reviewers.
