@@ -5,7 +5,7 @@ in_bam=$1 && shift
 picard_dir="${PICARDDIR}"
 
 ## use 80 percent of available threads and memory
-threads=$( expr "$(grep -c processor /proc/cpuinfo)" / 10 \* 8)
+threads=$( expr "$(grep -c processor /proc/cpuinfo)" \* 8 / 10 )
 
 bam_dirname=$(dirname "${in_bam}")
 bam_basename=$(basename "${in_bam}")
@@ -45,7 +45,8 @@ else
 fi
 
 echo "[INFO] Running SamToFastq for bam file: $(basename "${in_bam}")"
-java -Xmx50G -jar "${picard_dir}"/picard.jar SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
+echo "java -Xmx50G -jar ${picard_dir}/picard.jar SamToFastq ODIR=${out_dir} OPRG=true RGT=ID NON_PF=true RC=true I=${in_bam}"
+PicardCommandLine SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
 
 echo "[INFO] About to rename fastq files"
 for fastq_path in "${out_dir}"/*fastq; do
