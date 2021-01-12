@@ -2,35 +2,31 @@
 
 in_bam=$1 && shift
 
-picard_dir="/data/tools/picard-tools_v1.141"
-samtools_dir="/data/tools/samtools_v1.10"
+#picard_dir="/data/tools/picard-tools_v1.141"
+#samtools_dir="/data/tools/samtools_v1.10"
+# versions
+echo "Versions used:"
+samtools -v
+
 
 ## use 80 percent of available threads and memory
 threads=$( expr "$(grep -c processor /proc/cpuinfo)" / 10 \* 8)
 
-bam_dirname=$(dirname "${in_bam}")
-bam_basename=$(basename "${in_bam}")
-sample_name=$(echo "${bam_basename}" | cut -d"." -f1 | cut -d"_" -f1)
-out_dir="${bam_dirname}/${sample_name}_FASTQ"
-
-if [[ "$(hostname)" == "datastore" ]]; then
-    picard_dir="/data/common/tools/picard-tools_v1.141"
-    samtools_dir="/data/common/tools/samtools_v1.10"
-fi
+#bam_dirname=$(dirname "${in_bam}")
+#bam_basename=$(basename "${in_bam}")
+#sample_name=$(echo "${bam_basename}" | cut -d"." -f1 | cut -d"_" -f1)
+#out_dir="${bam_dirname}/${sample_name}_FASTQ"
+out_dir=./fastq
 
 if [[ "${in_bam}" == "-h" || "${in_bam}" == "--help" ]]; then
     echo "-----"
     echo " Usage: $(basename $0) <BAM_FILE>"
-    echo " Using Picard dir ${picard_dir}"
-    echo " Using Samtools dir ${samtools_dir}"
     echo "-----"
     exit 1
 fi
 
 ## ---------------
 ## sanity checks
-if [[ ! -d "${picard_dir}" ]]; then echo "[ERROR] Picard dir not found (${picard_dir})"; exit 1; fi
-if [[ ! -d "${samtools_dir}" ]]; then echo "[ERROR] Samtools dir not found (${samtools_dir})"; exit 1; fi
 if [[ ! -f "${in_bam}" ]]; then echo "[ERROR] Bam file not found (${in_bam})"; exit 1; fi
 if [[ ! -w "$(dirname "${out_dir}")" ]]; then echo "[ERROR] Output dir not writable?"; exit 1; fi
 
