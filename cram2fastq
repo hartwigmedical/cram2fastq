@@ -14,7 +14,10 @@ bam=$(echo "${cram}" | sed 's/cram$/bam/')
 
 echo "[INFO] Starting with cram2fastq [${cram}]"
 
-gsutil -m cp "${cram}" ./
+if [[ "${cram}" =~ ^gs ]]; then
+    echo "[INFO] Downloading cram file from GCP [${cram}]"
+    gsutil -m cp "${cram}" ./
+fi
 
 cram2bam "${cram}"
 

@@ -3,12 +3,12 @@ FROM google/cloud-sdk:latest
 RUN apt-get update
 RUN apt-get --yes install openjdk-11-jre
 
-ADD bam2fastq bam2fastq
-ADD cram2bam cram2bam
-ADD cram2fastq cram2fastq
+ADD bam2fastq bin/
+ADD cram2bam bin/
+ADD cram2fastq bin/
 
-RUN chmod +x bam2fastq
-RUN chmod +x cram2bam
-RUN chmod +x cram2fastq
+RUN chmod +x bin/bam2fastq
+RUN chmod +x bin/cram2bam
+RUN chmod +x bin/cram2fastq
 
-ENTRYPOINT ["./cram2fastq"]
+ENTRYPOINT ["bin/cram2fastq"]
