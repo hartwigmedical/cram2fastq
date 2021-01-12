@@ -1,22 +1,19 @@
 #!/usr/bin/env bash
 
 if [[ -z "$1" || "$1" == "-h" || "$1" == "--help" ]]; then
-    echo "-----"
-    echo " Descr: Wrapper for cram2bam and bam2fastq"
-    echo " Usage: $(basename $0) <CRAM file>"
-    echo " Examp: nohup $(basename $0) <CRAM file> > cram2fastq.log &"
-    echo "-----"
-    exit 1
+  echo "-----"
+  echo " Descr: Wrapper for cram2bam and bam2fastq"
+  echo " Usage: $(basename $0) <CRAM file>"
+  echo " Examp: nohup $(basename $0) <CRAM file> > cram2fastq.log &"
+  echo "-----"
+  exit 1
 fi
 
 cram=$1
 local_cram="${BASEPATH}/local_cram"
 local_bam=$(echo "${local_cram}" | sed 's/cram$/bam/')
 
-
 echo "[INFO] Starting with cram2fastq [${cram}]"
-
-cd "${BASEPATH}" || exit
 
 gsutil -m cp "${cram}" "${local_cram}"
 
@@ -24,10 +21,7 @@ cram2bam "${local_cram}"
 
 bam2fastq "${local_bam}"
 
-fastq_files=$(find "${BASEPATH}" -name "*.fastq.gz")
-echo "${fastq_files}"
-
 # At the end you can copy your fastq back into GCS in this location
-gsutil -m cp "${fastq_files}" gs://hmf-cram2fastq/fastq/david/
+gsutil -m rsync "${BASEPATH}/local_FASTQ" gs://hmf-cram2fastq/fastq/david/
 
-echo "[INFO] Finished with cram2fastq" 
+echo "[INFO] Finished with cram2fastq"
