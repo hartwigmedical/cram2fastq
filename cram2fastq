@@ -11,18 +11,19 @@ fi
 
 cram=$1
 bam=$(echo "${cram}" | sed 's/cram$/bam/')
+local_cram="${BASEPATH}/local_cram"
 
 echo "[INFO] Starting with cram2fastq [${cram}]"
 
 cd "${BASEPATH}" || exit
 
-gsutil -m cp "${cram}" ./
+gsutil -m cp "${cram}" "${local_cram}"
 
-cram2bam "${cram}"
+cram2bam "${local_cram}"
 
 bam2fastq "${bam}"
 
 # At the end you can copy your fastq back into GCS in this location
-gsutil -m cp output*.fastq.gz gs://hmf-cram2fastq/fastq/your_name/
+gsutil -m cp output*.fastq.gz gs://hmf-cram2fastq/fastq/david/
 
 echo "[INFO] Finished with cram2fastq" 
