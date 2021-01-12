@@ -21,9 +21,9 @@ if [[ "${cram}" =~ ^gs ]]; then
     bam=$(echo "${cram}" | sed 's/cram$/bam/')
 fi
 
-cram2bam "${cram}"
+./cram2bam "${cram}"
 
-bam2fastq "${bam}"
+./bam2fastq "${bam}"
 
 # At the end you can copy your fastq back into GCS in this location
 #gsutil -m cp output*.fastq.gz gs://hmf-cram2fastq/fastq/stef/
