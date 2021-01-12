@@ -14,7 +14,9 @@ bam=$(echo "${cram}" | sed 's/cram$/bam/')
 
 echo "[INFO] Starting with cram2fastq [${cram}]"
 
-gsutil -m cp ${cram} ./
+cd "${BASEPATH}" || exit
+
+gsutil -m cp "${cram}" ./
 
 cram2bam "${cram}"
 
