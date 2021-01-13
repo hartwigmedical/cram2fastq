@@ -3,7 +3,7 @@
 in_bam=$1 && shift
 
 ## use 80 percent of available threads and memory
-threads=$( expr "$(grep -c processor /proc/cpuinfo)" \* 8 / 10 )
+threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
 
 bam_dirname=$(dirname "${in_bam}")
 bam_basename=$(basename "${in_bam}")
@@ -12,7 +12,7 @@ out_dir="${bam_dirname}/${sample_name}_FASTQ"
 
 if [[ "${in_bam}" == "-h" || "${in_bam}" == "--help" ]]; then
     echo "-----"
-    echo " Usage: $(basename $0) <BAM_FILE>"
+    echo " Usage: $(basename "$0") <BAM_FILE>"
     echo " Using Picard jar ${PICARD_PATH}"
     echo "-----"
     exit 1
@@ -30,7 +30,7 @@ if [[ ! -w "$(dirname "${out_dir}")" ]]; then echo "[ERROR] Output dir not writa
 correct_lane_count=$($SAMTOOLS_PATH view -H "${in_bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
 if [[ ${correct_lane_count} -gt 1 ]]; then
     echo "[ERROR] There are RG ID header lines in BAM without the expected pattern (_L00[1-8]_):"
-    $SAMTOOLS_PATH view -H ${in_bam} | grep ^@RG
+    $SAMTOOLS_PATH view -H "${in_bam}" | grep ^@RG
     exit 1
 fi
 

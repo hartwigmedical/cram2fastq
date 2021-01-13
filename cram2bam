@@ -2,7 +2,7 @@
 
 if [[ -z "$1" || "$1" == "-h" || "$1" == "--help" ]]; then
     echo "-----"
-    echo " Usage: $(basename $0) <CRAM file>"
+    echo " Usage: $(basename "$0") <CRAM file>"
     echo " Using samtools at ${SAMTOOLS_PATH}"
     echo "-----"
     exit 1
@@ -11,10 +11,10 @@ fi
 cram=$1
 
 ## use 80 percent of available threads
-threads=$( expr $(grep -c processor /proc/cpuinfo) \* 8 / 10)
+threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
 
 main() {
-    info "Starting with $(basename $0)"
+    info "Starting with $(basename "$0")"
     
     ## sanity checks
     command -v "${SAMTOOLS_PATH}" >/dev/null 2>&1 || die "samtools not found"
@@ -22,7 +22,7 @@ main() {
     [[ "${cram}" =~ cram$ ]] || die "Not a CRAM file (${cram})"
 
     ## variables setup
-    bam=$(echo "${cram}" | sed 's/cram$/bam/')
+    bam=${cram//"cram"/"bam"}
 
     ## jobs
     info "Converting ${cram} to ${bam} (with samtools view)"
@@ -52,16 +52,16 @@ main() {
 }
 
 die() { 
-    echo "[ERROR] $(date +"%y%m%d %T") $@" >&2
+    echo "[ERROR] $(date +"%y%m%d %T") $*" >&2
     exit 1 
 }
 
 warn() { 
-    echo "[WARN] $(date +"%y%m%d %T") $@" >&2
+    echo "[WARN] $(date +"%y%m%d %T") $*" >&2
 }
 
 info() { 
-    echo "[INFO] $(date +"%y%m%d %T") $@"
+    echo "[INFO] $(date +"%y%m%d %T") $*"
 }
 
 main

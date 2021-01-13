@@ -11,15 +11,15 @@
 if [[ -z "$1" || "$1" == "-h" || "$1" == "--help" ]]; then
   echo "-----"
   echo " Descr: Wrapper for cram2bam and bam2fastq"
-  echo " Usage: $(basename $0) <CRAM file>"
-  echo " Examp: nohup $(basename $0) <CRAM file> > cram2fastq.log &"
+  echo " Usage: $(basename "$0") <CRAM file>"
+  echo " Examp: nohup $(basename "$0") <CRAM file> > cram2fastq.log &"
   echo "-----"
   exit 1
 fi
 
 cram=$1
 local_cram="${BASEPATH}/local_cram"
-local_bam=$(echo "${local_cram}" | sed 's/cram$/bam/')
+local_bam=${local_cram//"cram"/"bam"}
 
 echo "[INFO] Starting with cram2fastq [${cram}]"
 
