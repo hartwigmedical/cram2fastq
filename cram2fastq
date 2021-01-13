@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+## see versions of installed apt-get packages
+#apt-cache policy openjdk-11-jre
+#apt-cache policy pigz
+#apt-cache policy libncurses5-dev
+#apt-cache policy zlib1g-dev
+#apt-cache policy libbz2-dev
+#apt-cache policy liblzma-dev
+
 if [[ -z "$1" || "$1" == "-h" || "$1" == "--help" ]]; then
   echo "-----"
   echo " Descr: Wrapper for cram2bam and bam2fastq"
