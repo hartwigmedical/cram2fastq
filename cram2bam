@@ -36,19 +36,19 @@ main() {
     bam_flagstat="${bam}.flagstat"
     "${SAMTOOLS_PATH}" flagstat --threads "${threads}" "${bam}" > "${bam_flagstat}"
 
-    total_cram=$(cat ${cram_flagstat} | head -1 | cut -d" " -f1)
-    total_bam=$(cat ${bam_flagstat} | head -1 | cut -d" " -f1)
+    total_cram=$(head -1 "${cram_flagstat}" | cut -d" " -f1)
+    total_bam=$(head -1 "${bam_flagstat}" | cut -d" " -f1)
 
     info "File ${cram_flagstat} shows ${total_cram} total reads"
     info "File ${bam_flagstat} shows ${total_bam} total reads"
 
     info "Running diff on flagstats"
-    diff ${cram_flagstat} ${bam_flagstat}
-    if [[ $? -ne 0 ]]; then 
+    diff_exit_status=$(diff "${cram_flagstat}" "${bam_flagstat}")
+    if [[ diff_exit_status -ne 0 ]]; then
         warn "Flagstat diff failed: check result before using downstream!!"
     fi
 
-    info "Finished with $(basename $0)"
+    info "Finished with $(basename "$0")"
 }
 
 die() { 
