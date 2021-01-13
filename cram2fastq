@@ -13,15 +13,21 @@ cram=$1
 
 echo "[INFO] Starting with cram2fastq [${cram}]"
 
-gsutil -m cp ${cram} ./
+if [[ ${cram} =~ ^gs ]]; then
+    gsutil -m cp ${cram} ./
+else
+    echo "[ERROR] No GCP file inputted"
+    exit 1
+fi
 
-cram_donwloaded=./${cram##*/}
-./cram2bam "${cram_donwloaded}"
+cram_downloaded=./${cram##*/}
+echo "[RUN] cram2bam: [${cram_downloaded}]"
+./cram2bam "${cram_downloaded}"
 
-bam=$(echo "${cram}" | sed 's/cram$/bam/')
+bam=$(echo "${cram_downloaded}" | sed 's/cram$/bam/')
+echo "[RUN] bam2fastq: [${bam}]"
 ./bam2fastq "${bam}"
 
-# At the end you can copy your fastq back into GCS in this location
 gsutil -m cp ./output/*.fastq.gz gs://hmf-cram2fastq/fastq/sandra/
 rm -r ./output
 

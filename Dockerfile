@@ -6,10 +6,10 @@ RUN apt-get --yes install picard-tools
 RUN apt-get --yes install samtools
 RUN apt-get --yes install pigz
 
-ADD bam2fastq bam2fastq
-ADD cram2bam cram2bam
-ADD cram2fastq cram2fastq
 
-RUN chmod +x cram2fastq
+ADD cram2fastq cram2fastq
+ADD cram2bam cram2bam
+ADD bam2fastq bam2fastq
+
 
 ENTRYPOINT ["./cram2fastq"]

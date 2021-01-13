@@ -1,13 +1,5 @@
 #!/usr/bin/env bash
 
-in_bam=$1 && shift
-
-## use 80 percent of available threads and memory
-threads=$( expr "$(grep -c processor /proc/cpuinfo)" / 10 \* 8)
-threads=3
-
-out_dir=./output
-
 if [[ "${in_bam}" == "-h" || "${in_bam}" == "--help" ]]; then
     echo "-----"
     echo " Usage: $(basename $0) <BAM_FILE>"
@@ -15,10 +7,16 @@ if [[ "${in_bam}" == "-h" || "${in_bam}" == "--help" ]]; then
     exit 1
 fi
 
+in_bam=$1 && shift
+
+threads=3
+
+out_dir=./output
+
 
 ## ---------------
 ## sanity checks
-#if [[ ! -f "${in_bam}" ]]; then echo "[ERROR] Bam file not found (${in_bam})"; exit 1; fi
+if [[ ! -f "${in_bam}" ]]; then echo "[ERROR] Bam file not found (${in_bam})"; exit 1; fi
 if [[ ! -w "$(dirname "${out_dir}")" ]]; then echo "[ERROR] Output dir not writable?"; exit 1; fi
 
 ## ---------------
@@ -40,7 +38,7 @@ else
 fi
 
 echo "[INFO] Running SamToFastq for bam file: $(basename "${in_bam}")"
-picard-tools SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
+PicardCommandLine SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
 
 echo "[INFO] About to rename fastq files"
 for fastq_path in "${out_dir}"/*fastq; do
