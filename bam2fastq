@@ -1,46 +1,34 @@
 #!/usr/bin/env bash
 
-in_bam=$1 && shift
-
-## use 80 percent of available threads and memory
-#threads=$( expr "$(grep -c processor /proc/cpuinfo)" / 10 \* 8)
-
-threads=3
-
-bam_dirname=$(dirname "${in_bam}")
-out_dir="${bam_dirname}/output"
+bam_file=$1 && shift
+out_dir=$1 && shift
 
 mkdir -p "${out_dir}"
 
-## ---------------
 ## sanity checks
-if [[ ! -f "${in_bam}" ]]; then echo "[ERROR] Bam file not found (${in_bam})"; exit 1; fi
+if [[ ! -f "${bam_file}" ]]; then echo "[ERROR] Input BAM file not found (${bam_file})"; exit 1; fi
 if [[ ! -w "${out_dir}" ]]; then echo "[ERROR] Output dir not writeable (${out_dir})"; exit 1; fi
 
-## ---------------
-
-## Check format of RG/ID tags in header
-correct_lane_count=$(samtools view -H "${in_bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
-if [[ ${correct_lane_count} -gt 1 ]]; then
+## Double check format of RG/ID tags in header
+correct_lane_count=$(samtools view -H "${bam_file}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
+if [[ "${correct_lane_count}" -gt 1 ]]; then
     echo "[ERROR] There are RG ID header lines in BAM without the expected pattern (_L00[1-8]_):"
-    samtools view -H ${in_bam} | grep ^@RG
+    samtools view -H "${bam_file}" | grep ^@RG
     exit 1
 fi
 
-echo "[INFO] Running SamToFastq for bam file: $(basename "${in_bam}")"
-PicardCommandLine SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
+echo "[INFO] Running SamToFastq for bam_file file: $(basename "${bam_file}")"
+PicardCommandLine SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam_file}"
 
-echo "[INFO] About to rename fastq files"
+echo "[INFO] Renaming fastq files to standard format"
 find "${out_dir}" -name "*.fastq" | while read fastq_path; do
-    fastq_old=$(basename "${fastq_path}")
-    fastq_new=$(echo "${fastq_old}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
-    mv "${fastq_path}" "${out_dir}/${fastq_new}"
-    echo "[INFO] ${fastq_old} renamed to ${fastq_new}"
+    old_name=$(basename "${fastq_path}")
+    new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
+    mv "${fastq_path}" "${out_dir}/${new_name}"
+    echo "[INFO]   Renamed ${old_name} to ${new_name}"
 done
 
-echo "[INFO] gzipping fastq files...(using pigz)"
+echo "[INFO] Compressing fastq files (with pigz)"
 find "${out_dir}" -name "*.fastq" -exec pigz {} +
 
-echo "[INFO] Output fastq can be found in ${out_dir}"
-
-ls "${out_dir}"
+echo "[INFO] Output in ${out_dir}"

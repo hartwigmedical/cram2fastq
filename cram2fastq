@@ -1,31 +1,29 @@
 #!/usr/bin/env bash
 
-if [[ -z "$1" || "$1" == "-h" || "$1" == "--help" ]]; then
-    echo "-----"
-    echo " Descr: Wrapper for cram2bam and bam2fastq"
-    echo " Usage: $(basename $0) <CRAM file>"
-    echo " Examp: nohup $(basename $0) <CRAM file> > cram2fastq.log &"
-    echo "-----"
-    exit 1
+cram_file=$1
+fastq_dir="./fastq"
+bam_file=${cram_file/.cram/.bam}
+bucket="hmf-cram2fastq"
+
+echo "[INFO] Starting cram2fastq"
+
+if [[ "${cram_file}" =~ ^gs ]]; then
+    echo "[INFO] Input CRAM is a GCP url so need to download first"
+    cram_url="${cram_file}"
+    cram_file=$(basename "${cram_url}")
+    bam_file=${cram_file/.cram/.bam}
+
+    echo "[INFO] Downloading [${cram_url}]"
+    gsutil -m cp "${cram_url}" ./
 fi
 
-cram=$1
-bam=$(echo "${cram}" | sed 's/cram$/bam/')
+echo "[INFO] Starting cram2bam"
+./cram2bam "${cram_file}" "${bam_file}" || exit 1
 
-echo "[INFO] Starting with cram2fastq [${cram}]"
+echo "[INFO] Starting bam2fastq"
+./bam2fastq "${bam_file}" "${fastq_dir}"  || exit 1
 
-if [[ "${cram}" =~ ^gs ]]; then
-    echo "[INFO] Downloading cram file from GCP [${cram}]"
-    gsutil -m cp "${cram}" ./
-    cram=$(basename "${cram}")
-    bam=$(echo "${cram}" | sed 's/cram$/bam/')
-fi
-
-./cram2bam "${cram}"
-
-./bam2fastq "${bam}"
-
-# At the end you can copy your fastq back into GCS in this location
-gsutil -m cp ./output/*.fastq.gz gs://hmf-cram2fastq/fastq/stef/
+echo "[INFO] Copying output fastq to GCP (${bucket})"
+gsutil -m cp "${fastq_dir}/*.fastq.gz" "gs://${bucket}/fastq/stef/"
 
 echo "[INFO] Finished with cram2fastq" 
