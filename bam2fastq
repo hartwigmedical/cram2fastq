@@ -22,10 +22,10 @@ if [[ ! -w "$(dirname "${out_dir}")" ]]; then echo "[ERROR] Output dir not writa
 ## ---------------
 
 ## Check format of RG/ID tags in header
-correct_lane_count=$(samtools view -H "${in_bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
+correct_lane_count=$(./samtools-1.9 view -H "${in_bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
 if [[ ${correct_lane_count} -gt 1 ]]; then
     echo "[ERROR] There are RG ID header lines in BAM without the expected pattern (_L00[1-8]_):"
-    samtools view -H ${in_bam} | grep ^@RG
+    ./samtools-1.9 view -H ${in_bam} | grep ^@RG
     exit 1
 fi
 

@@ -24,15 +24,15 @@ main() {
     ## jobs
     info "Config: using samtools (${samtools})"
     info "Converting ${cram} to ${bam} (with samtools view)"
-    samtools view -O bam -o "${bam}" --threads "${threads}" "${cram}"
+    ./samtools-1.9/samtools view -O bam -o "${bam}" --threads "${threads}" "${cram}"
 
     info "Creating flagstat for ${cram}"
     cram_flagstat="${cram}.flagstat"
-    samtools flagstat --threads "${threads}" "${cram}" > "${cram_flagstat}"
+    ./samtools-1.9/samtools flagstat --threads "${threads}" "${cram}" > "${cram_flagstat}"
 
     info "Creating flagstat for ${bam}"
     bam_flagstat="${bam}.flagstat"
-    samtools flagstat --threads "${threads}" "${bam}" > "${bam_flagstat}"
+    ./samtools-1.9/samtools flagstat --threads "${threads}" "${bam}" > "${bam_flagstat}"
 
     total_cram=$(cat ${cram_flagstat} | head -1 | cut -d" " -f1)
     total_bam=$(cat ${bam_flagstat} | head -1 | cut -d" " -f1)
