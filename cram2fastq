@@ -1,29 +1,131 @@
 #!/usr/bin/env bash
 
-cram_file=$1
+cram=$1
+threads=3
+samtools="samtools"
+picard="PicardCommandLine"
+gsutil="gsutil"
+
 fastq_dir="./fastq"
-bam_file=${cram_file/.cram/.bam}
-bucket="hmf-cram2fastq"
+bam=${cram/.cram/.bam}
+bucket="hmf-cram2fastq/fastq/stef"
 
-echo "[INFO] Starting cram2fastq"
+main() {
+    info "Starting with $(basename $0)"
 
-if [[ "${cram_file}" =~ ^gs ]]; then
-    echo "[INFO] Input CRAM is a GCP url so need to download first"
-    cram_url="${cram_file}"
-    cram_file=$(basename "${cram_url}")
-    bam_file=${cram_file/.cram/.bam}
+    sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1)
+    gcp_out_path="${bucket}/${sample}_FASTQ"
 
-    echo "[INFO] Downloading [${cram_url}]"
-    gsutil -m cp "${cram_url}" ./
-fi
+    # sanity checks
+    tool_exists_or_die "${samtools}"
+    tool_exists_or_die "${picard}"
+    tool_exists_or_die "${gsutil}"
+    [[ "${cram}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram})"
 
-echo "[INFO] Starting cram2bam"
-./cram2bam "${cram_file}" "${bam_file}" || exit 1
+    # the work
+    mkdir -p "${fastq_dir}"
 
-echo "[INFO] Starting bam2fastq"
-./bam2fastq "${bam_file}" "${fastq_dir}"  || exit 1
+    if [[ "${cram}" =~ ^gs ]]; then
+        cram_url="${cram}"
+        cram=$(basename "${cram_url}")
+        bam=${cram/.cram/.bam}
+        info "URL input so downloading [${cram_url}]"
+        gsutil -m cp "${cram_url}" ./
+    fi
 
-echo "[INFO] Copying output fastq to GCP (${bucket})"
-gsutil -m cp "${fastq_dir}/*.fastq.gz" "gs://${bucket}/fastq/stef/"
+    if [[ "${cram}" =~ cram$ ]]; then
+        info "Converting CRAM to BAM"
+        convert_cram_to_bam "${cram}" "${bam}" || exit 1
+    fi
 
-echo "[INFO] Finished with cram2fastq" 
+    info "Converting BAM to FASTQ"
+    convert_bam_to_fastq "${bam}" "${fastq_dir}" || exit 1
+
+    info "Copying FASTQ to GCP"
+    ${gsutil} -m cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/"
+    info "Finished (check output with: gsutil ls gs://${gcp_out_path})"
+}
+
+convert_cram_to_bam() {
+    local cram=$1 && shift
+    local bam=$1 && shift
+
+    info "Converting ${cram} to BAM"
+    ${samtools} view -O bam -o "${bam}" --threads "${threads}" "${cram}"
+
+    info "Creating flagstat for ${cram}"
+    cram_flagstat="${cram}.flagstat"
+    ${samtools} flagstat --threads "${threads}" "${cram}" > "${cram_flagstat}"
+
+    info "Creating flagstat for ${bam}"
+    bam_flagstat="${bam}.flagstat"
+    ${samtools} flagstat --threads "${threads}" "${bam}" > "${bam_flagstat}"
+
+    total_cram=$(cat ${cram_flagstat} | head -1 | cut -d" " -f1)
+    total_bam=$(cat ${bam_flagstat} | head -1 | cut -d" " -f1)
+
+    info "File ${cram_flagstat} shows ${total_cram} total reads"
+    info "File ${bam_flagstat} shows ${total_bam} total reads"
+
+    info "Running diff on flagstats"
+    diff ${cram_flagstat} ${bam_flagstat} || die "Flagstat diff failed: check result before using downstream!!"
+
+    info "Finished with $(basename $0)"
+}
+
+convert_bam_to_fastq() {
+    local bam=$1 && shift
+    local out_dir=$1 && shift
+
+    info "Converting ${bam} to FASTQ"
+
+    # double check format of RG/ID tags in header
+    correct_lane_count=$(samtools view -H "${bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
+    if [[ "${correct_lane_count}" -gt 1 ]]; then
+        echo "[ERROR] There are RG ID header lines in BAM without the expected pattern (_L00[1-8]_):"
+        ${samtools} view -H "${bam}" | grep ^@RG
+        exit 1
+    fi
+
+    info "Running SamToFastq for bam file: $(basename "${bam}")"
+    ${picard} SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}"
+
+    info "Renaming fastq files to standard format"
+    find "${out_dir}" -name "*.fastq" | while read fastq_path; do
+        old_name=$(basename "${fastq_path}")
+        new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
+        mv "${fastq_path}" "${out_dir}/${new_name}"
+        info "  Renamed ${old_name} to ${new_name}"
+    done
+
+    info "Compressing fastq files (with pigz)"
+    find "${out_dir}" -name "*.fastq" -exec pigz {} +
+
+    info "Output in ${out_dir}"
+}
+
+msg() {
+    local msg_type=$1 && shift
+    local msg_content=$* && shift
+    echo "[${msg_type}] $(date +'%y%m%d %T') - ${msg_content}"
+}
+
+tool_exists_or_die() {
+    local tool=$1 && shift
+    command -v "${tool}" >/dev/null 2>&1 || die "Tool '${tool}' not found"
+}
+
+die() {
+    msg "ERROR" "$@" >&2
+    exit 1
+}
+
+warn() {
+    msg "WARN" "$@" >&2
+}
+
+info() {
+    msg "INFO" "$@"
+}
+
+main
