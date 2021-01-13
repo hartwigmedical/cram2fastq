@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+tar -vxjf samtools-1.9.tar.bz2
+cd samtools-1.9
+./configure
+make
+cd ./
