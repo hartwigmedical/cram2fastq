@@ -2,8 +2,6 @@
 
 in_bam=$1 && shift
 
-picard_dir="${PICARDDIR}"
-
 ## use 80 percent of available threads and memory
 threads=$( expr "$(grep -c processor /proc/cpuinfo)" \* 8 / 10 )
 
@@ -15,14 +13,14 @@ out_dir="${bam_dirname}/${sample_name}_FASTQ"
 if [[ "${in_bam}" == "-h" || "${in_bam}" == "--help" ]]; then
     echo "-----"
     echo " Usage: $(basename $0) <BAM_FILE>"
-    echo " Using Picard dir ${picard_dir}"
+    echo " Using Picard jar ${PICARD_PATH}"
     echo "-----"
     exit 1
 fi
 
 ## ---------------
 ## sanity checks
-if [[ ! -d "${picard_dir}" ]]; then echo "[ERROR] Picard dir not found (${picard_dir})"; exit 1; fi
+if [[ ! -f "${PICARD_PATH}" ]]; then echo "[ERROR] Picard file not found (${PICARD_PATH})"; exit 1; fi
 if [[ ! -f "${in_bam}" ]]; then echo "[ERROR] Bam file not found (${in_bam})"; exit 1; fi
 if [[ ! -w "$(dirname "${out_dir}")" ]]; then echo "[ERROR] Output dir not writable?"; exit 1; fi
 
@@ -45,8 +43,7 @@ else
 fi
 
 echo "[INFO] Running SamToFastq for bam file: $(basename "${in_bam}")"
-echo "java -Xmx50G -jar ${picard_dir}/picard.jar SamToFastq ODIR=${out_dir} OPRG=true RGT=ID NON_PF=true RC=true I=${in_bam}"
-PicardCommandLine SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
+java -Xmx50G -jar "${PICARD_PATH}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${in_bam}"
 
 echo "[INFO] About to rename fastq files"
 for fastq_path in "${out_dir}"/*fastq; do

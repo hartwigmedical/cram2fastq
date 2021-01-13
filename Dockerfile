@@ -7,14 +7,14 @@ ENV PATH=$PATH:$BASEPATH
 # set environment variables
 ENV SAMTOOLS_BUILD_DIR="$BASEPATH/samtools-1.11"
 ENV SAMTOOLS_PATH="$BASEPATH/samtools"
-ENV PICARDDIR="/usr/share/java"
 ENV PICARD_PATH="$BASEPATH/picard"
 
 # install command line stuff
-RUN apt-get update
-RUN apt-get --yes install openjdk-11-jre
-RUN apt-get --yes install picard-tools
-RUN apt-get --yes install pigz
+RUN apt-get update &&\
+    apt-get --yes install openjdk-11-jre &&\
+    apt-get --yes install pigz &&\
+    # necessary for samtools build
+    apt-get --yes install libncurses5-dev zlib1g-dev libbz2-dev liblzma-dev
 
 # download picard jar
 ADD https://github.com/broadinstitute/picard/releases/download/2.24.0/picard.jar $PICARD_PATH
