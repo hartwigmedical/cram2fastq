@@ -22,6 +22,7 @@ fi
 ## ---------------
 ## sanity checks
 if [[ ! -f "${PICARD_PATH}" ]]; then echo "[ERROR] Picard file not found (${PICARD_PATH})"; exit 1; fi
+if [[ ! -f "${SAMTOOLS_PATH}" ]]; then echo "[ERROR] Samtools file not found (${SAMTOOLS_PATH})"; exit 1; fi
 if [[ ! -f "${in_bam}" ]]; then echo "[ERROR] Bam file not found (${in_bam})"; exit 1; fi
 if [[ ! -w "$(dirname "${out_dir}")" ]]; then echo "[ERROR] Output dir not writable?"; exit 1; fi
 
