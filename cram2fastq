@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 
-cram=$1
+cram=$1 # can be GCP url or local file
+new_name=$2 # optional new sample name
+
+# TODO: add params for threads/tools/bucket
 threads=3
 samtools="samtools"
 picard="PicardCommandLine"
 gsutil="gsutil"
+bucket="hmf-cram2fastq/fastq/stef"
 
 fastq_dir="./fastq"
 bam=${cram/.cram/.bam}
-bucket="hmf-cram2fastq/fastq/stef"
 
 main() {
     info "Starting with $(basename $0)"
@@ -21,6 +24,9 @@ main() {
     tool_exists_or_die "${picard}"
     tool_exists_or_die "${gsutil}"
     [[ "${cram}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram})"
+    if [[ "${new_name}" != "" ]]; then
+        [[ "${new_name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "New name can only contain [a-zA-Z0-9] or '-' (${new_name})"
+    fi
 
     # the work
     mkdir -p "${fastq_dir}"
@@ -34,16 +40,34 @@ main() {
     fi
 
     if [[ "${cram}" =~ cram$ ]]; then
-        info "Converting CRAM to BAM"
         convert_cram_to_bam "${cram}" "${bam}" || exit 1
     fi
 
-    info "Converting BAM to FASTQ"
     convert_bam_to_fastq "${bam}" "${fastq_dir}" || exit 1
+
+    if [[ "${new_name}" != "" ]]; then
+        info "Renaming compressed FASTQ files to include provided sample name"
+        rename_fastq_files "${fastq_dir}" "${new_name}"
+        gcp_out_path="${bucket}/${new_name}_FASTQ"
+    fi
 
     info "Copying FASTQ to GCP"
     ${gsutil} -m cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/"
-    info "Finished (check output with: gsutil ls gs://${gcp_out_path})"
+    info "Output in gs://${gcp_out_path}"
+    info "Finished"
+}
+
+rename_fastq_files() {
+    local dir=$1 && shift
+    local new_name=$1 && shift
+    find "${dir}" -name "*.fastq.gz" | while read -r old_path; do
+        old_file=$(basename "${old_path}")
+        old_name=$(echo "${old_file}" | cut -d"_" -f1)
+        new_file=${old_file/${old_name}/${new_name}}
+        new_path="${dir}/${new_file}"
+        mv "${old_path}" "${new_path}"
+        info "  Renamed ${old_file} to ${new_file}"
+    done
 }
 
 convert_cram_to_bam() {
@@ -61,14 +85,14 @@ convert_cram_to_bam() {
     bam_flagstat="${bam}.flagstat"
     ${samtools} flagstat --threads "${threads}" "${bam}" > "${bam_flagstat}"
 
-    total_cram=$(cat ${cram_flagstat} | head -1 | cut -d" " -f1)
-    total_bam=$(cat ${bam_flagstat} | head -1 | cut -d" " -f1)
+    total_cram=$(head -1 "${cram_flagstat}" | cut -d" " -f1)
+    total_bam=$(head -1 "${bam_flagstat}" | cut -d" " -f1)
 
     info "File ${cram_flagstat} shows ${total_cram} total reads"
     info "File ${bam_flagstat} shows ${total_bam} total reads"
 
     info "Running diff on flagstats"
-    diff ${cram_flagstat} ${bam_flagstat} || die "Flagstat diff failed: check result before using downstream!!"
+    diff "${cram_flagstat}" "${bam_flagstat}" || die "Flagstat diff failed: check result before using downstream!!"
 
     info "Finished with $(basename $0)"
 }
@@ -80,28 +104,26 @@ convert_bam_to_fastq() {
     info "Converting ${bam} to FASTQ"
 
     # double check format of RG/ID tags in header
-    correct_lane_count=$(samtools view -H "${bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
-    if [[ "${correct_lane_count}" -gt 1 ]]; then
-        echo "[ERROR] There are RG ID header lines in BAM without the expected pattern (_L00[1-8]_):"
+    unexpected_read_group_count=$(samtools view -H "${bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
+    if [[ "${unexpected_read_group_count}" -gt 0 ]]; then
+        warn "There are RG ID header lines in BAM without the expected pattern present (_L00[1-8]_):"
         ${samtools} view -H "${bam}" | grep ^@RG
-        exit 1
+        die "Exiting because renaming of fastq files will probably fail"
     fi
 
     info "Running SamToFastq for bam file: $(basename "${bam}")"
     ${picard} SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}"
 
-    info "Renaming fastq files to standard format"
-    find "${out_dir}" -name "*.fastq" | while read fastq_path; do
+    info "Renaming FASTQ files to standard format"
+    find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
         old_name=$(basename "${fastq_path}")
         new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
         mv "${fastq_path}" "${out_dir}/${new_name}"
         info "  Renamed ${old_name} to ${new_name}"
     done
 
-    info "Compressing fastq files (with pigz)"
+    info "Compressing FASTQ files in ${out_dir} (using pigz)"
     find "${out_dir}" -name "*.fastq" -exec pigz {} +
-
-    info "Output in ${out_dir}"
 }
 
 msg() {
