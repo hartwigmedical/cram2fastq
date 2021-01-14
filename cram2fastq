@@ -1,26 +1,153 @@
 #!/usr/bin/env bash
 
-if [[ -z "$1" || "$1" == "-h" || "$1" == "--help" ]]; then
-    echo "-----"
-    echo " Descr: Wrapper for cram2bam and bam2fastq"
-    echo " Usage: $(basename $0) <CRAM file>"
-    echo " Examp: nohup $(basename $0) <CRAM file> > cram2fastq.log &"
-    echo "-----"
+cram=$1 # can be GCP url or local file
+new_name=$2 # optional new sample name
+
+# TODO: add params for threads/tools/bucket
+threads=3
+samtools="samtools"
+picard="PicardCommandLine"
+gsutil="gsutil"
+bucket="hmf-cram2fastq/fastq/stef"
+
+fastq_dir="./fastq"
+bam=${cram/.cram/.bam}
+
+main() {
+    info "Starting with $(basename $0)"
+
+    sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1)
+    gcp_out_path="${bucket}/${sample}_FASTQ"
+
+    # sanity checks
+    tool_exists_or_die "${samtools}"
+    tool_exists_or_die "${picard}"
+    tool_exists_or_die "${gsutil}"
+    [[ "${cram}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram})"
+    if [[ "${new_name}" != "" ]]; then
+        [[ "${new_name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "New name can only contain [a-zA-Z0-9] or '-' (${new_name})"
+    fi
+
+    # the work
+    mkdir -p "${fastq_dir}"
+
+    if [[ "${cram}" =~ ^gs ]]; then
+        cram_url="${cram}"
+        cram=$(basename "${cram_url}")
+        bam=${cram/.cram/.bam}
+        info "URL input so downloading [${cram_url}]"
+        gsutil -m cp "${cram_url}" ./
+    fi
+
+    if [[ "${cram}" =~ cram$ ]]; then
+        convert_cram_to_bam "${cram}" "${bam}" || exit 1
+    fi
+
+    convert_bam_to_fastq "${bam}" "${fastq_dir}" || exit 1
+
+    if [[ "${new_name}" != "" ]]; then
+        info "Renaming compressed FASTQ files to include provided sample name"
+        rename_fastq_files "${fastq_dir}" "${new_name}"
+        gcp_out_path="${bucket}/${new_name}_FASTQ"
+    fi
+
+    info "Copying FASTQ to GCP"
+    ${gsutil} -m cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/"
+    info "Output in gs://${gcp_out_path}"
+    info "Finished"
+}
+
+rename_fastq_files() {
+    local dir=$1 && shift
+    local new_name=$1 && shift
+    find "${dir}" -name "*.fastq.gz" | while read -r old_path; do
+        old_file=$(basename "${old_path}")
+        old_name=$(echo "${old_file}" | cut -d"_" -f1)
+        new_file=${old_file/${old_name}/${new_name}}
+        new_path="${dir}/${new_file}"
+        mv "${old_path}" "${new_path}"
+        info "  Renamed ${old_file} to ${new_file}"
+    done
+}
+
+convert_cram_to_bam() {
+    local cram=$1 && shift
+    local bam=$1 && shift
+
+    info "Converting ${cram} to BAM"
+    ${samtools} view -O bam -o "${bam}" --threads "${threads}" "${cram}"
+
+    info "Creating flagstat for ${cram}"
+    cram_flagstat="${cram}.flagstat"
+    ${samtools} flagstat --threads "${threads}" "${cram}" > "${cram_flagstat}"
+
+    info "Creating flagstat for ${bam}"
+    bam_flagstat="${bam}.flagstat"
+    ${samtools} flagstat --threads "${threads}" "${bam}" > "${bam_flagstat}"
+
+    total_cram=$(head -1 "${cram_flagstat}" | cut -d" " -f1)
+    total_bam=$(head -1 "${bam_flagstat}" | cut -d" " -f1)
+
+    info "File ${cram_flagstat} shows ${total_cram} total reads"
+    info "File ${bam_flagstat} shows ${total_bam} total reads"
+
+    info "Running diff on flagstats"
+    diff "${cram_flagstat}" "${bam_flagstat}" || die "Flagstat diff failed: check result before using downstream!!"
+
+    info "Finished with $(basename $0)"
+}
+
+convert_bam_to_fastq() {
+    local bam=$1 && shift
+    local out_dir=$1 && shift
+
+    info "Converting ${bam} to FASTQ"
+
+    # double check format of RG/ID tags in header
+    unexpected_read_group_count=$(samtools view -H "${bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
+    if [[ "${unexpected_read_group_count}" -gt 0 ]]; then
+        warn "There are RG ID header lines in BAM without the expected pattern present (_L00[1-8]_):"
+        ${samtools} view -H "${bam}" | grep ^@RG
+        die "Exiting because renaming of fastq files will probably fail"
+    fi
+
+    info "Running SamToFastq for bam file: $(basename "${bam}")"
+    ${picard} SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}"
+
+    info "Renaming FASTQ files to standard format"
+    find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
+        old_name=$(basename "${fastq_path}")
+        new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
+        mv "${fastq_path}" "${out_dir}/${new_name}"
+        info "  Renamed ${old_name} to ${new_name}"
+    done
+
+    info "Compressing FASTQ files in ${out_dir} (using pigz)"
+    find "${out_dir}" -name "*.fastq" -exec pigz {} +
+}
+
+msg() {
+    local msg_type=$1 && shift
+    local msg_content=$* && shift
+    echo "[${msg_type}] $(date +'%y%m%d %T') - ${msg_content}"
+}
+
+tool_exists_or_die() {
+    local tool=$1 && shift
+    command -v "${tool}" >/dev/null 2>&1 || die "Tool '${tool}' not found"
+}
+
+die() {
+    msg "ERROR" "$@" >&2
     exit 1
-fi
+}
 
-cram=$1
-bam=$(echo "${cram}" | sed 's/cram$/bam/')
+warn() {
+    msg "WARN" "$@" >&2
+}
 
-echo "[INFO] Starting with cram2fastq [${cram}]"
+info() {
+    msg "INFO" "$@"
+}
 
-gsutil -m cp ${cram} ./
-
-cram2bam "${cram}"
-
-bam2fastq "${bam}"
-
-# At the end you can copy your fastq back into GCS in this location
-gsutil -m cp output*.fastq.gz gs://hmf-cram2fastq/fastq/your_name/
-
-echo "[INFO] Finished with cram2fastq" 
+main
