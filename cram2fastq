@@ -8,13 +8,15 @@ threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
 samtools="samtools"
 picard="picard.jar"
 gsutil="gsutil"
-bucket="hmf-cram2fastq/fastq/stef"
+bucket="hmf-cram2fastq/fastq/"
 
 fastq_dir="./fastq"
 bam=${cram/.cram/.bam}
 
 main() {
     info "Starting with $(basename $0)"
+
+    gcloud auth activate-service-account --key-file=service_account.json
 
     sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1)
     gcp_out_path="${bucket}/${sample}_FASTQ"

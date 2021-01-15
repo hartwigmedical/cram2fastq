@@ -1,4 +1,4 @@
-FROM google/cloud-sdk:latest
+FROM google/cloud-sdk:317.0.0
 
 # add repo tools
 RUN apt-get update

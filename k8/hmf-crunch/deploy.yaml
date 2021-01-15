@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cram2fastq-your-name
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      containers:
+        - ???
+      imagePullSecrets:
+        - name: container-registry-reader
+      restartPolicy: Never
