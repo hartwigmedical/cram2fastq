@@ -4,9 +4,9 @@ cram=$1 # can be GCP url or local file
 new_name=$2 # optional new sample name
 
 # TODO: add params for threads/tools/bucket
-threads=3
+threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
 samtools="samtools"
-picard="PicardCommandLine"
+picard="picard.jar"
 gsutil="gsutil"
 bucket="hmf-cram2fastq/fastq/stef"
 
@@ -21,8 +21,8 @@ main() {
 
     # sanity checks
     tool_exists_or_die "${samtools}"
-    tool_exists_or_die "${picard}"
     tool_exists_or_die "${gsutil}"
+    file_exists_or_die "${picard}"
     [[ "${cram}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram})"
     if [[ "${new_name}" != "" ]]; then
         [[ "${new_name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "New name can only contain [a-zA-Z0-9] or '-' (${new_name})"
@@ -112,7 +112,7 @@ convert_bam_to_fastq() {
     fi
 
     info "Running SamToFastq for bam file: $(basename "${bam}")"
-    ${picard} SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}"
+    java -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}"
 
     info "Renaming FASTQ files to standard format"
     find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
@@ -135,6 +135,11 @@ msg() {
 tool_exists_or_die() {
     local tool=$1 && shift
     command -v "${tool}" >/dev/null 2>&1 || die "Tool '${tool}' not found"
+}
+
+file_exists_or_die() {
+    local file=$1 && shift
+    [[ -f "${file}" ]] || die "File '${file}' not found"
 }
 
 die() {
