@@ -1,13 +1,15 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cram2fastq-stef
+  name: cram2fastq-stef-4
 spec:
   backoffLimit: 1
   template:
     spec:
       containers:
-        - ???
+        - name: cram2fastq-stef
+          image: eu.gcr.io/hmf-build/cram2fastq:stef.3
+          args: ["gs://hmf-cram2fastq/cram/CPCT12345678T.cram", "K8-STEF"]
       imagePullSecrets:
         - name: container-registry-reader
       restartPolicy: Never
