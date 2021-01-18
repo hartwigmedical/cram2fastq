@@ -8,8 +8,8 @@ spec:
     spec:
       containers:
         - name: cram2fastq-david
-          image: eu.gcr.io/hmf-build/cram2fastq:david.2
-          args: ["gs://hmf-cram2fastq/cram/CPCT12345678T.cram"]
+          image: eu.gcr.io/hmf-build/cram2fastq:david.3
+          args: ["gs://hmf-cram2fastq/cram/CPCT12345678T.cram", "hmf-cram2fastq/fastq/david", "new-name"]
       imagePullSecrets:
         - name: container-registry-reader
       restartPolicy: Never

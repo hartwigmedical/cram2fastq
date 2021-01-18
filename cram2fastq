@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 
 cram=$1 # can be GCP url or local file
-new_name=$2 # optional new sample name
+bucket=$2 # must be the GCP url of a bucket or directory
+new_name=$3 # optional new sample name
 
-# TODO: add params for bucket
 threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
 samtools="samtools"
 picard="picard.jar"
 gsutil="gsutil"
-bucket="hmf-cram2fastq/fastq/david"
 
 fastq_dir="./fastq"
 bam=${cram/.cram/.bam}
@@ -23,6 +22,7 @@ main() {
     tool_exists_or_die "${samtools}"
     tool_exists_or_die "${gsutil}"
     file_exists_or_die "${picard}"
+    [[ -n "${cram}" && -n "${bucket}" ]] || die "Expected cram and bucket argument. cram:'${cram}', bucket:'${bucket}'"
     [[ "${cram}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram})"
     if [[ "${new_name}" != "" ]]; then
         [[ "${new_name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "New name can only contain [a-zA-Z0-9] or '-' (${new_name})"
