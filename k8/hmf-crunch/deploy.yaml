@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cram2fastq-your-name
+  name: cram2fastq-stef
 spec:
   backoffLimit: 1
   template:
