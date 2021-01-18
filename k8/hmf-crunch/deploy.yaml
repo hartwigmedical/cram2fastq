@@ -1,13 +1,15 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cram2fastq-your-name
+  name: cram2fastq-sandra
 spec:
   backoffLimit: 1
   template:
     spec:
       containers:
-        - ???
+        - name: cram2fastq-sandra
+          image: eu.gcr.io/hmf-build/cram2fastq:sandra.2
+          args: ['gs://hmf-cram2fastq/cram/CPCT12345678T.cram']
       imagePullSecrets:
         - name: container-registry-reader
       restartPolicy: Never
