@@ -118,7 +118,7 @@ Kubectl is the command line tool to work with a kubernetes cluster. You can use 
 ```shell script
 kubectl get jobs
 kubectl get pods
-kubectl get logs <pod-name>
+kubectl logs <pod-name>
 ```
 
 The [GKE UI in the console](https://console.cloud.google.com/kubernetes/list?project=hmf-crunch) is also quite handy for monitoring and 
