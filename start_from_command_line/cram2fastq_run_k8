@@ -10,10 +10,12 @@ bucket=$2
 new_name=$3
 
 cram_name_with_extension="${cram##*/}"
-cram_name=$(echo "${cram_name_with_extension%.*}" | awk '{print tolower($0)}')
+cram_name="${cram_name_with_extension%.*}"
 
-# Has to end with alphanumeric character
-pod_name="c2f-david-${cram_name}-${new_name}-c"
+# Has to be lowercase alphanumeric characters, '-' or '.', and has to end with alphanumeric character
+pod_name=$(echo "c2f-david-${cram_name}-${new_name}-c" | awk '{print tolower($0)}')
+
+echo "${pod_name}"
 
 kubectl delete job "${pod_name}"
 sed -e "s~\${cram}~'${cram}'~" -e "s~\${bucket}~'${bucket}'~" \
