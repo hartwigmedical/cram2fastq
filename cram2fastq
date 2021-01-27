@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 
 cram=$1 # can be GCP url or local file
-name=$2 # string that will be used as sample name
-bucket=$3 # bucket to write output data to
+bucket=$2 # must be the GCP url of a bucket or directory
+new_name=$3 # optional new sample name
 
-# TODO: add params for threads/tools/bucket
 threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
 samtools="samtools"
 picard="picard.jar"
@@ -16,18 +15,18 @@ bam=${cram/.cram/.bam}
 main() {
     info "Starting with $(basename $0)"
 
+    sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1)
+    gcp_out_path="${bucket}/${sample}_FASTQ"
+
     # sanity checks
     tool_exists_or_die "${samtools}"
     tool_exists_or_die "${gsutil}"
     file_exists_or_die "${picard}"
-
-    [[ -n "${cram}" && -n "${name}" && -n "${bucket}" ]] || die "Provide path-to-cram + sample-name + output-bucket"
+    [[ -n "${cram}" && -n "${bucket}" ]] || die "Expected cram and bucket argument. cram:'${cram}', bucket:'${bucket}'"
     [[ "${cram}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram})"
-    [[ "${bucket}" =~ ^gs ]] || die "Expected 'gs' prefix for bucket (${bucket})"
-    [[ "${name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "Sample name can only contain [a-zA-Z0-9] or '-' (${name})"
-
-    cram_sample_name=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1)
-    gcp_out_path="${bucket}/${name}_FASTQ"
+    if [[ "${new_name}" != "" ]]; then
+        [[ "${new_name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "New name can only contain [a-zA-Z0-9] or '-' (${new_name})"
+    fi
 
     # the work
     mkdir -p "${fastq_dir}"
@@ -46,14 +45,15 @@ main() {
 
     convert_bam_to_fastq "${bam}" "${fastq_dir}" || exit 1
 
-    if [[ "${cram_sample_name}" != "${name}" ]]; then
-        info "Renaming compressed FASTQ files to include provided sample name (${name})"
-        rename_fastq_files "${fastq_dir}" "${name}"
+    if [[ "${new_name}" != "" ]]; then
+        info "Renaming compressed FASTQ files to include provided sample name"
+        rename_fastq_files "${fastq_dir}" "${new_name}"
+        gcp_out_path="${bucket}/${new_name}_FASTQ"
     fi
 
     info "Copying FASTQ to GCP"
-    ${gsutil} -m cp "${fastq_dir}/*.fastq.gz" "${gcp_out_path}/"
-    info "Output in ${gcp_out_path}"
+    ${gsutil} -m cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/"
+    info "Output in gs://${gcp_out_path}"
     info "Finished"
 }
 

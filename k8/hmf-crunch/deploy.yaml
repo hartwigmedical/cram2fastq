@@ -1,15 +1,15 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: cram2fastq-stef-with-output-bucket
+  name: cram2fastq-david
 spec:
   backoffLimit: 1
   template:
     spec:
       containers:
-        - name: cram2fastq-stef
-          image: eu.gcr.io/hmf-build/cram2fastq:stef.6
-          args: ["gs://hmf-cram2fastq/cram/CPCT12345678T.cram", "K8-STEF", "gs://hmf-cram2fastq/fastq-output"]
+        - name: cram2fastq-david
+          image: eu.gcr.io/hmf-build/cram2fastq:david.3
+          args: ["gs://hmf-cram2fastq/cram/CPCT12345678T.cram", "hmf-cram2fastq/fastq/david", "new-name"]
       imagePullSecrets:
         - name: container-registry-reader
       restartPolicy: Never
