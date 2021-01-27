@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
         - name: ${pod_name}
-          image: eu.gcr.io/hmf-build/cram2fastq:david.3
+          image: eu.gcr.io/hmf-build/cram2fastq:1.0
           args: [${cram}, ${bucket}, ${new_name}]
       imagePullSecrets:
         - name: container-registry-reader
