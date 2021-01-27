@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# This is probably a bad idea, but it does sort of work
+
+# If you try to start k8 for a combination of "cram" and "new name" that is already running,
+# then it deletes the running/old one and starts another.
+
+cram=$1
+bucket=$2
+new_name=$3
+
+cram_name_with_extension="${cram##*/}"
+cram_name="${cram_name_with_extension%.*}"
+
+# Has to be lowercase alphanumeric characters, '-' or '.', and has to end with alphanumeric character
+pod_name=$(echo "c2f-david-${cram_name}-${new_name}-c" | awk '{print tolower($0)}')
+
+echo "${pod_name}"
+
+kubectl delete job "${pod_name}"
+sed -e "s~\${cram}~'${cram}'~" -e "s~\${bucket}~'${bucket}'~" \
+  -e "s~\${new_name}~'${new_name}'~"  -e "s~\${pod_name}~'${pod_name}'~" \
+  < start_from_command_line/configurable_deploy.yaml| \
+  kubectl create -f -
