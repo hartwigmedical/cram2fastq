@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+function printUsage(){
+    echo "USAGE: $0 run <cram-url> <output-bucket> <sample-name>"
+    echo "  <cram-url>       The complete gs:// url to input CRAM"
+    echo "  <sample-name>    The tag that FASTQ filenames will have as start"
+    echo "  <output-bucket>  The bucket to push fastq files to (without gs:// prefix!)"
+    exit 1
+}
+
+function run() {
+    cram_url=$1 && shift
+    out_bucket=$1 && shift
+    sample_name=$1 && shift
+
+    # sanity checks
+    if [[ ! "${cram_url}" =~ ^gs[-/:.a-zA-Z0-9]+$ ]]; then
+      echo "[ERROR] CRAM URL wrong format (must start with 'gs' and can only contain [a-zA-Z0-9] or '-' or '/' or ':')" >&2 && exit 1
+    fi
+    if [[ ! "${out_bucket}" =~ ^[-/a-zA-Z0-9]+$ ]]; then
+      echo "[ERROR] Output bucket wrong format (can only contain [a-zA-Z0-9] or '-' or '/')" >&2 && exit 1
+    fi
+    if [[ ! "${sample_name}" =~ ^[-a-zA-Z0-9]+$ ]]; then
+      echo "[ERROR] Sample name (can only contain [a-zA-Z0-9] or '-')" >&2 && exit 1
+    fi
+
+    pod_name="$(echo "cram2fq-${sample_name}" | awk '{print tolower($0)}')"
+    clean_pod_name="$(echo "${pod_name}" | tr '_' '-' | tr '[A-Z]' '[a-z]' | tr '.' '-')"
+    cram_url_for_sed="$(echo "${cram_url}" | sed 's/\//\\\//g')"
+    out_bucket_for_sed="$(echo "${out_bucket}" | sed 's/\//\\\//g')"
+
+    sed \
+    -e "s/VAR_POD_NAME/${clean_pod_name}/g" \
+    -e "s/VAR_CRAM_URL/${cram_url_for_sed}/g" \
+    -e "s/VAR_OUTPUT_BUCKET/${out_bucket_for_sed}/g" \
+    -e "s/VAR_SAMPLE_NAME/${sample_name}/g" \
+    k8/hmf-crunch/deploy.yaml \
+    | kubectl create -f -
+}
+
+if [ $# -lt 2 ]; then
+  printUsage
+fi
+
+CMD=$1
+shift
+
+case $CMD in
+run)
+    run "$@"
+    ;;
+*)
+    printUsage
+    ;;
+esac
