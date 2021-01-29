@@ -14,8 +14,8 @@ function run() {
     sample_name=$1 && shift
 
     # sanity checks
-    if [[ ! "${cram_url}" =~ ^gs[-/:.a-zA-Z0-9]+$ ]]; then
-      echo "[ERROR] CRAM URL wrong format (must start with 'gs' and can only contain [a-zA-Z0-9] or '-' or '/' or ':')" >&2 && exit 1
+    if [[ ! "${cram_url}" =~ ^gs[-/:._a-zA-Z0-9]+$ ]]; then
+      echo "[ERROR] CRAM URL wrong format (must start with 'gs' and can only contain [a-zA-Z0-9] or '-' or '/' or ':' or '_')" >&2 && exit 1
     fi
     if [[ ! "${out_bucket}" =~ ^[-/a-zA-Z0-9]+$ ]]; then
       echo "[ERROR] Output bucket wrong format (can only contain [a-zA-Z0-9] or '-' or '/')" >&2 && exit 1
