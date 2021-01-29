@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-cram=$1 # can be GCP url or local file
-bucket=$2 # must be the GCP url of a bucket or directory
-new_name=$3 # optional new sample name
+gcp_user_project=$1 # optional new sample name
+cram=$2 # can be GCP url or local file
+bucket=$3 # must be the GCP url of a bucket or directory
+new_name=$4 # optional new sample name
 
 threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
 samtools="samtools"
@@ -36,7 +37,7 @@ main() {
         cram=$(basename "${cram_url}")
         bam=${cram/.cram/.bam}
         info "URL input so downloading [${cram_url}]"
-        gsutil -m cp "${cram_url}" ./
+        gsutil -u "${gcp_user_project}" -m cp "${cram_url}" ./ || die "Unable to download ${cram}"
     fi
 
     if [[ "${cram}" =~ cram$ ]]; then
@@ -52,7 +53,7 @@ main() {
     fi
 
     info "Copying FASTQ to GCP"
-    ${gsutil} -m cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/"
+    ${gsutil} -u "${gcp_user_project}" -m cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/" || die "Unable to upload FASTQ files"
     info "Output in gs://${gcp_out_path}"
     info "Finished"
 }

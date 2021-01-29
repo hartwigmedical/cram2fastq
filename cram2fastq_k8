@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 
 function printUsage(){
-    echo "USAGE: $0 run <cram-url> <output-bucket> <sample-name>"
-    echo "  <cram-url>       The complete gs:// url to input CRAM"
-    echo "  <sample-name>    The tag that FASTQ filenames will have as start"
-    echo "  <output-bucket>  The bucket to push fastq files to (without gs:// prefix!)"
+    echo "USAGE: $0 run <cram-url> <output-bucket> <sample-name> <gcp-user-project> "
+    echo "  <cram-url>         The complete gs url to input CRAM"
+    echo "  <output-bucket>    The name of bucket to copy output fastq files to"
+    echo "  <sample-name>      The tag that FASTQ filenames will have as start"
+    echo "  <gcp-user-project> The GCP user project"
     exit 1
 }
 
 function run() {
+    gcp_user_project=$1 && shift
     cram_url=$1 && shift
     out_bucket=$1 && shift
     sample_name=$1 && shift
@@ -34,6 +36,7 @@ function run() {
     -e "s/VAR_CRAM_URL/${cram_url_for_sed}/g" \
     -e "s/VAR_OUTPUT_BUCKET/${out_bucket_for_sed}/g" \
     -e "s/VAR_SAMPLE_NAME/${sample_name}/g" \
+    -e "s/VAR_GCP_USER_PROJECT/${gcp_user_project}/g" \
     k8/hmf-crunch/deploy.yaml \
     | kubectl create -f -
 }

@@ -8,8 +8,9 @@ spec:
     spec:
       containers:
         - name: VAR_POD_NAME
-          image: eu.gcr.io/hmf-build/cram2fastq:1.0
-          args: ["VAR_CRAM_URL", "VAR_OUTPUT_BUCKET", "VAR_SAMPLE_NAME"]
+          image: eu.gcr.io/hmf-build/cram2fastq:1.1
+          imagePullPolicy: Always
+          args: ["VAR_GCP_USER_PROJECT", "VAR_CRAM_URL", "VAR_OUTPUT_BUCKET", "VAR_SAMPLE_NAME"]
       imagePullSecrets:
         - name: container-registry-reader
       restartPolicy: Never
