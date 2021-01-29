@@ -25,7 +25,7 @@ function run() {
     fi
 
     pod_name="$(echo "cram2fq-${sample_name}" | awk '{print tolower($0)}')"
-    clean_pod_name="$(echo "${pod_name}" | tr '_' '-' | tr '[A-Z]' '[a-z]' | tr '.' '-')"
+    clean_pod_name="$(echo "${pod_name}" | tr '_' '-' | tr '[:upper:]' '[:lower:]' | tr '.' '-')"
     cram_url_for_sed="$(echo "${cram_url}" | sed 's/\//\\\//g')"
     out_bucket_for_sed="$(echo "${out_bucket}" | sed 's/\//\\\//g')"
 
