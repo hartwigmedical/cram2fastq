@@ -2,6 +2,8 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: VAR_POD_NAME
+  labels:
+    app: cram2fastq
 spec:
   backoffLimit: 1
   template:
@@ -16,6 +18,21 @@ spec:
               memory: "32Gi"
             limits:
               memory: "32Gi"
-      imagePullSecrets:
-        - name: container-registry-reader
+      nodeSelector:
+        pool: large-mem-burst
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - cram2fastq
+              topologyKey: "kubernetes.io/hostname"
+      tolerations:
+        - key: reserved-pool
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
       restartPolicy: Never
