@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 function printUsage(){
-    echo "USAGE: $0 run <cram-url> <output-bucket> <sample-name> <gcp-user-project> "
+    echo "USAGE: $0 run <gcp-user-project> <cram-url> <output-bucket> <sample-name>"
+    echo "  <gcp-user-project> The GCP user project"
     echo "  <cram-url>         The complete gs url to input CRAM"
     echo "  <output-bucket>    The name of bucket to copy output fastq files to"
     echo "  <sample-name>      The tag that FASTQ filenames will have as start"
-    echo "  <gcp-user-project> The GCP user project"
     exit 1
 }
 
