@@ -31,6 +31,9 @@ function run() {
     cram_url_for_sed="$(echo "${cram_url}" | sed 's/\//\\\//g')"
     out_bucket_for_sed="$(echo "${out_bucket}" | sed 's/\//\\\//g')"
 
+    # Make sure correct credentials are available
+    gcloud container clusters get-credentials rerun-cluster --region europe-west4 --project hmf-crunch || exit 1
+
     sed \
     -e "s/VAR_POD_NAME/${clean_pod_name}/g" \
     -e "s/VAR_CRAM_URL/${cram_url_for_sed}/g" \
