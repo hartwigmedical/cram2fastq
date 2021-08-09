@@ -119,6 +119,9 @@ convert_bam_to_fastq() {
     find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
         old_name=$(basename "${fastq_path}")
         new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
+        # Fix incorrect fastq names of the forms *_R1_.fastq and *_R2_.fastq
+        new_name="${new_name//"_.fastq"/"_001.fastq"}"
+
         mv "${fastq_path}" "${out_dir}/${new_name}"
         info "  Renamed ${old_name} to ${new_name}"
     done
