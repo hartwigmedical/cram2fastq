@@ -51,7 +51,7 @@ main() {
 
     if [[ "${new_name}" != "" ]]; then
         info "Renaming compressed FASTQ files to include provided sample name"
-        rename_fastq_files "${fastq_dir}" "${new_name}"
+        rename_fastq_files "${fastq_dir}" "${new_name}" || exit 1
         gcp_out_path="${bucket}/${new_name}_FASTQ"
     fi
 
@@ -69,7 +69,7 @@ rename_fastq_files() {
         old_name=$(echo "${old_file}" | cut -d"_" -f1)
         new_file=${old_file/${old_name}/${new_name}}
         new_path="${dir}/${new_file}"
-        mv "${old_path}" "${new_path}"
+        mv "${old_path}" "${new_path}" || die "Could not rename FASTQ file from '${old_path}' to '${new_path}'"
         info "  Renamed ${old_file} to ${new_file}"
     done
 }
@@ -79,15 +79,15 @@ convert_cram_to_bam() {
     local bam=$1 && shift
 
     info "Converting ${cram} to BAM"
-    ${samtools} view -O bam -o "${bam}" --threads "${threads}" "${cram}"
+    ${samtools} view -O bam -o "${bam}" --threads "${threads}" "${cram}" || die "Could not convert CRAM to BAM"
 
     info "Creating flagstat for ${cram}"
     cram_flagstat="${cram}.flagstat"
-    ${samtools} flagstat --threads "${threads}" "${cram}" > "${cram_flagstat}"
+    ${samtools} flagstat --threads "${threads}" "${cram}" > "${cram_flagstat}" || die "Could not create flagstat for CRAM"
 
     info "Creating flagstat for ${bam}"
     bam_flagstat="${bam}.flagstat"
-    ${samtools} flagstat --threads "${threads}" "${bam}" > "${bam_flagstat}"
+    ${samtools} flagstat --threads "${threads}" "${bam}" > "${bam_flagstat}" || die "Could not create flagstat for BAM"
 
     total_cram=$(head -1 "${cram_flagstat}" | cut -d" " -f1)
     total_bam=$(head -1 "${bam_flagstat}" | cut -d" " -f1)
@@ -116,7 +116,8 @@ convert_bam_to_fastq() {
     fi
 
     info "Running SamToFastq for bam file: $(basename "${bam}")"
-    java -Xmx31G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}"
+    java -Xmx31G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}" \
+        || die "SamToFastq failed"
 
     info "Renaming FASTQ files to standard format"
     find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
@@ -125,12 +126,12 @@ convert_bam_to_fastq() {
         # Fix incorrect fastq names of the forms *_R1_.fastq and *_R2_.fastq
         new_name="${new_name//"_.fastq"/"_001.fastq"}"
 
-        mv "${fastq_path}" "${out_dir}/${new_name}"
+        mv "${fastq_path}" "${out_dir}/${new_name}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
         info "  Renamed ${old_name} to ${new_name}"
     done
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
-    find "${out_dir}" -name "*.fastq" -exec pigz {} +
+    find "${out_dir}" -name "*.fastq" -exec pigz {} + || die "Could not compress FASTQ files with pigz"
 }
 
 msg() {
