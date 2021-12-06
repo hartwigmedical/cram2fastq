@@ -14,8 +14,10 @@ data_base_dir="/scratch"
 fastq_dir="${data_base_dir}/fastq"
 bam=${cram/.cram/.bam}
 
+script_name=$(basename "$0")
+
 main() {
-    info "Starting with $(basename $0)"
+    info "Starting ${script_name}"
 
     sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1)
     gcp_out_path="${bucket}/${sample}_FASTQ"
@@ -58,7 +60,7 @@ main() {
     info "Copying FASTQ to GCP"
     ${gsutil} -u "${gcp_user_project}" -m cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/" || die "Unable to upload FASTQ files"
     info "Output in gs://${gcp_out_path}"
-    info "Finished"
+    info "Finished ${script_name}"
 }
 
 rename_fastq_files() {
@@ -97,8 +99,6 @@ convert_cram_to_bam() {
 
     info "Running diff on flagstats"
     diff "${cram_flagstat}" "${bam_flagstat}" || die "Flagstat diff failed: check result before using downstream!!"
-
-    info "Finished with $(basename $0)"
 }
 
 convert_bam_to_fastq() {
