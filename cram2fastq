@@ -43,6 +43,8 @@ main() {
 
     if [[ "${cram}" =~ cram$ ]]; then
         convert_cram_to_bam "${cram}" "${bam}" || exit 1
+        info "Deleting local copy of cram"
+        rm "${cram}" || die "Could not delete the local copy of the cram: ${cram}"
     fi
 
     convert_bam_to_fastq "${bam}" "${fastq_dir}" || exit 1
