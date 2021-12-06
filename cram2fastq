@@ -10,7 +10,7 @@ samtools="samtools"
 picard="picard.jar"
 gsutil="gsutil"
 
-data_base_dir="/scratch"
+data_base_dir="$HOME/data"
 fastq_dir="${data_base_dir}/fastq"
 bam=${cram/.cram/.bam}
 

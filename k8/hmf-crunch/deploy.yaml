@@ -18,12 +18,6 @@ spec:
               memory: "32Gi"
             limits:
               memory: "32Gi"
-          volumeMounts:
-            - mountPath: /scratch
-              name: scratch-volume
-      volumes:
-        - name: scratch-volume
-          emptyDir: {}
       nodeSelector:
         pool: large-mem-pool-1
       affinity:
