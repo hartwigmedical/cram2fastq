@@ -10,7 +10,8 @@ samtools="samtools"
 picard="picard.jar"
 gsutil="gsutil"
 
-fastq_dir="./fastq"
+data_base_dir="/scratch"
+fastq_dir="${data_base_dir}/fastq"
 bam=${cram/.cram/.bam}
 
 main() {
@@ -34,7 +35,7 @@ main() {
 
     if [[ "${cram}" =~ ^gs ]]; then
         cram_url="${cram}"
-        cram=$(basename "${cram_url}")
+        cram="${data_base_dir}/$(basename "${cram_url}")"
         bam=${cram/.cram/.bam}
         info "URL input so downloading [${cram_url}]"
         gsutil -u "${gcp_user_project}" -m cp "${cram_url}" ./ || die "Unable to download ${cram}"
