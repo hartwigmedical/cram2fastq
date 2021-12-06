@@ -38,7 +38,7 @@ main() {
         cram="${data_base_dir}/$(basename "${cram_url}")"
         bam=${cram/.cram/.bam}
         info "URL input so downloading [${cram_url}]"
-        gsutil -u "${gcp_user_project}" -m cp "${cram_url}" ./ || die "Unable to download ${cram}"
+        gsutil -u "${gcp_user_project}" -m cp "${cram_url}" "${cram}" || die "Unable to download ${cram}"
     fi
 
     if [[ "${cram}" =~ cram$ ]]; then
