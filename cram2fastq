@@ -71,8 +71,10 @@ rename_fastq_files() {
         old_name=$(echo "${old_file}" | cut -d"_" -f1)
         new_file=${old_file/${old_name}/${new_name}}
         new_path="${dir}/${new_file}"
-        mv "${old_path}" "${new_path}" || die "Could not rename FASTQ file from '${old_path}' to '${new_path}'"
-        info "  Renamed ${old_file} to ${new_file}"
+        if [[ "${old_path}" != "${new_path}" ]]; then
+          mv "${old_path}" "${new_path}" || die "Could not rename FASTQ file from '${old_path}' to '${new_path}'"
+          info "  Renamed ${old_file} to ${new_file}"
+        fi
     done
 }
 
@@ -126,8 +128,11 @@ convert_bam_to_fastq() {
         # Fix incorrect fastq names of the forms *_R1_.fastq and *_R2_.fastq
         new_name="${new_name//"_.fastq"/"_001.fastq"}"
 
-        mv "${fastq_path}" "${out_dir}/${new_name}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
-        info "  Renamed ${old_name} to ${new_name}"
+        new_path="${out_dir}/${new_name}"
+        if [[ "${fastq_path}" != "${new_path}" ]]; then
+          mv "${fastq_path}" "${new_path}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
+          info "  Renamed ${old_name} to ${new_name}"
+        fi
     done
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
