@@ -40,7 +40,7 @@ main() {
         cram="${data_base_dir}/$(basename "${cram_url}")"
         bam=${cram/.cram/.bam}
         info "URL input so downloading [${cram_url}]"
-        gsutil -u "${gcp_user_project}" -m cp "${cram_url}" "${cram}" || die "Unable to download ${cram}"
+        gsutil -u "${gcp_user_project}" -mq cp "${cram_url}" "${cram}" || die "Unable to download ${cram}"
     fi
 
     if [[ "${cram}" =~ cram$ ]]; then
@@ -58,7 +58,7 @@ main() {
     fi
 
     info "Copying FASTQ to GCP"
-    ${gsutil} -u "${gcp_user_project}" -m cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/" || die "Unable to upload FASTQ files"
+    ${gsutil} -u "${gcp_user_project}" -mq cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/" || die "Unable to upload FASTQ files"
     info "Output in gs://${gcp_out_path}"
     info "Finished ${script_name}"
 }
