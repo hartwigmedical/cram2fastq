@@ -110,10 +110,10 @@ convert_bam_to_fastq() {
     info "Converting ${bam} to FASTQ"
 
     # double check format of RG/ID tags in header
-    unexpected_read_group_count=$(samtools view -H "${bam}" | grep ^@RG | grep -vcP "_L00[1-8]_" )
+    unexpected_read_group_count=$(samtools view -H "${bam}" | grep "^@RG" | grep -vcP "_L00[1-8]_" )
     if [[ "${unexpected_read_group_count}" -gt 0 ]]; then
         warn "There are RG ID header lines in BAM without the expected pattern present (_L00[1-8]_):"
-        ${samtools} view -H "${bam}" | grep ^@RG
+        ${samtools} view -H "${bam}" | grep "^@RG"
         die "Exiting because renaming of fastq files will probably fail"
     fi
 
