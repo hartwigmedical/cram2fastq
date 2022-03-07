@@ -106,7 +106,7 @@ You can find the skeleton `yaml` file in `k8/hmf-crunch/deploy.yaml`. Fill it wi
 you can connect to the hmf-crunch cluster with:
 
 ```shell script
-gcloud container clusters get-credentials rerun-cluster --region europe-west4 --project hmf-crunch
+gcloud container clusters get-credentials research-cluster-prod-1 --region europe-west4 --project hmf-crunch
 ```
 
 ```shell script
