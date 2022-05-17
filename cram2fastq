@@ -6,13 +6,14 @@ bucket=$3 # must be the GCP url of a bucket or directory
 new_name=$4 # optional new sample name
 
 threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
-samtools="samtools"
+samtools=./samtools
 picard="picard.jar"
 gsutil="gsutil"
 
 data_base_dir="$HOME/data"
 fastq_dir="${data_base_dir}/fastq"
 bam=${cram/.cram/.bam}
+# ref="$HOME/ref/Homo_sapiens_assembly38.fasta"
 
 script_name=$(basename "$0")
 
@@ -31,6 +32,19 @@ main() {
     if [[ "${new_name}" != "" ]]; then
         [[ "${new_name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "New name can only contain [a-zA-Z0-9] or '-' (${new_name})"
     fi
+
+    # Set reference genome files
+    wget https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta \
+        || die "Could not download Homo_sapiens_assembly38.fasta"
+    wget https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai \
+        || die "Could not download Homo_sapiens_assembly38.fasta.fai"
+    wget https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.ref_cache.tar.gz \
+        || die "Could not download Homo_sapiens_assembly38.ref_cache.tar.gz"
+    tar xzf Homo_sapiens_assembly38.ref_cache.tar.gz || die "Could not untar Homo_sapiens_assembly38.ref_cache.tar.gz"
+    ref_path="$(pwd)/ref/cache/%2s/%2s/%s:http://www.ebi.ac.uk/ena/cram/md5/%s"
+    export REF_PATH="${ref_path}"
+    ref_cache="$(pwd)/ref/cache/%2s/%2s/%s"
+    export REF_CACHE="${ref_cache}"
 
     # the work
     mkdir -p "${fastq_dir}"
@@ -84,6 +98,7 @@ convert_cram_to_bam() {
 
     info "Converting ${cram} to BAM"
     ${samtools} view -O bam -o "${bam}" --threads "${threads}" "${cram}" || die "Could not convert CRAM to BAM"
+#    ${samtools} view -O bam -o "${bam}" -T "${ref}" --threads "${threads}" "${cram}" || die "Could not convert CRAM to BAM"
 
     info "Creating flagstat for ${cram}"
     cram_flagstat="${cram}.flagstat"
@@ -109,31 +124,31 @@ convert_bam_to_fastq() {
 
     info "Converting ${bam} to FASTQ"
 
-    # double check format of RG/ID tags in header
-    unexpected_read_group_count=$(samtools view -H "${bam}" | grep "^@RG" | grep -vcP "_L00[1-8]_" )
-    if [[ "${unexpected_read_group_count}" -gt 0 ]]; then
-        warn "There are RG ID header lines in BAM without the expected pattern present (_L00[1-8]_):"
-        ${samtools} view -H "${bam}" | grep "^@RG"
-        die "Exiting because renaming of fastq files will probably fail"
-    fi
+#    # double check format of RG/ID tags in header
+#    unexpected_read_group_count=$(samtools view -H "${bam}" | grep "^@RG" | grep -vcP "_L00[1-8]_" )
+#    if [[ "${unexpected_read_group_count}" -gt 0 ]]; then
+#        warn "There are RG ID header lines in BAM without the expected pattern present (_L00[1-8]_):"
+#        ${samtools} view -H "${bam}" | grep "^@RG"
+#        die "Exiting because renaming of fastq files will probably fail"
+#    fi
 
     info "Running SamToFastq for bam file: $(basename "${bam}")"
     java -Xmx31G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}" \
         || die "SamToFastq failed"
 
-    info "Renaming FASTQ files to standard format"
-    find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
-        old_name=$(basename "${fastq_path}")
-        new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
-        # Fix incorrect fastq names of the forms *_R1_.fastq and *_R2_.fastq
-        new_name="${new_name//"_.fastq"/"_001.fastq"}"
-
-        new_path="${out_dir}/${new_name}"
-        if [[ "${fastq_path}" != "${new_path}" ]]; then
-          mv "${fastq_path}" "${new_path}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
-          info "  Renamed ${old_name} to ${new_name}"
-        fi
-    done
+#    info "Renaming FASTQ files to standard format"
+#    find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
+#        old_name=$(basename "${fastq_path}")
+#        new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
+#        # Fix incorrect fastq names of the forms *_R1_.fastq and *_R2_.fastq
+#        new_name="${new_name//"_.fastq"/"_001.fastq"}"
+#
+#        new_path="${out_dir}/${new_name}"
+#        if [[ "${fastq_path}" != "${new_path}" ]]; then
+#          mv "${fastq_path}" "${new_path}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
+#          info "  Renamed ${old_name} to ${new_name}"
+#        fi
+#    done
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
     find "${out_dir}" -name "*.fastq" -exec pigz {} + || die "Could not compress FASTQ files with pigz"
