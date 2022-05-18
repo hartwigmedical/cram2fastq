@@ -18,7 +18,8 @@ RUN wget -qO- https://github.com/samtools/samtools/releases/download/1.10/samtoo
     && cd samtools-1.10 \
     && ./configure --prefix=/usr --enable-libcurl \
     && make \
-    && make install
+    && make install \
+    && cd ..
 ADD https://github.com/broadinstitute/picard/releases/download/2.24.0/picard.jar picard.jar
 
 # add script
