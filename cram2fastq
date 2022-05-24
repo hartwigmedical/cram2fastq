@@ -131,6 +131,15 @@ convert_bam_to_fastq() {
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
     find "${out_dir}" -name "*.fastq" -exec pigz {} + || die "Could not compress FASTQ files with pigz"
+
+    info "Rename fastq suffix to match '_R1' or '_R2'"
+    find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
+        temp_name="${fastq_path/_1.fastq.gz/_R1.fastq.gz}"
+        new_name="${temp_name/_2.fastq.gz/_R2.fastq.gz}"
+        if [[ "${fastq_path}" != "${new_name}" ]]; then
+            mv "${fastq_path}" "${new_name}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
+        fi
+    done
 }
 
 msg() {
