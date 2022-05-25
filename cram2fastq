@@ -126,7 +126,7 @@ convert_bam_to_fastq() {
     info "Converting ${bam} to FASTQ"
 
     info "Running SamToFastq for bam file: $(basename "${bam}")"
-    java -Xmx31G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}" \
+    java -Xmx63G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}" \
         || die "SamToFastq failed"
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
