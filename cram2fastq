@@ -58,8 +58,8 @@ main() {
 
     if [[ "${cram}" =~ cram$ ]]; then
         convert_cram_to_bam "${cram}" "${bam}" || exit 1
-        info "Deleting local copy of cram"
-        rm "${cram}" || die "Could not delete the local copy of the cram: ${cram}"
+        info "Deleting local copy of CRAM"
+        rm "${cram}" || die "Could not delete the local copy of the CRAM: ${cram}"
     fi
 
     convert_bam_to_fastq "${bam}" "${fastq_dir}" || exit 1
@@ -122,8 +122,15 @@ convert_bam_to_fastq() {
 
     info "Converting ${bam} to FASTQ"
 
-    info "Running SamToFastq for bam file: $(basename "${bam}")"
-    java -Xmx55G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}" \
+    info "Sort BAM by read name"
+    sorted_bam="${bam/.bam/.sorted.bam}"
+    ${samtools} sort -n -@ "${threads}" -o "${sorted_bam}" "${bam}" || die "Could not sort BAM by read name"
+
+    info "Delete unsorted BAM"
+    rm "${bam}" || die "Could not delete the unsorted BAM: ${bam}"
+
+    info "Running SamToFastq for bam file: $(basename "${sorted_bam}")"
+    java -Xmx55G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${sorted_bam}" \
         || die "SamToFastq failed"
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
