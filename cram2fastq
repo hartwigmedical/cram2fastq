@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 gcp_user_project=$1 # optional new sample name
-cram=$2 # can be GCP url or local file
+cram_url=$2 # can be GCP url or local file
 bucket=$3 # must be the GCP url of a bucket or directory
 new_name=$4 # optional new sample name
 
@@ -12,22 +12,21 @@ gsutil="gsutil"
 
 data_base_dir="$HOME/data"
 fastq_dir="${data_base_dir}/fastq"
-bam=${cram/.cram/.bam}
 
 script_name=$(basename "$0")
 
 main() {
     info "Starting ${script_name}"
 
-    sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1)
+    sample=$(basename "${cram_url}" | cut -d"." -f1 | cut -d"_" -f1)
     gcp_out_path="${bucket}/${sample}_FASTQ"
 
     # sanity checks
     tool_exists_or_die "${samtools}"
     tool_exists_or_die "${gsutil}"
     file_exists_or_die "${picard}"
-    [[ -n "${cram}" && -n "${bucket}" ]] || die "Expected cram and bucket argument. cram:'${cram}', bucket:'${bucket}'"
-    [[ "${cram}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram})"
+    [[ -n "${cram_url}" && -n "${bucket}" ]] || die "Expected cram and bucket argument. cram:'${cram_url}', bucket:'${bucket}'"
+    [[ "${cram_url}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram_url})"
     if [[ "${new_name}" != "" ]]; then
         [[ "${new_name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "New name can only contain [a-zA-Z0-9] or '-' (${new_name})"
     fi
@@ -51,13 +50,11 @@ main() {
     # the work
     mkdir -p "${fastq_dir}"
 
-    if [[ "${cram}" =~ ^gs ]]; then
-        cram_url="${cram}"
-        cram="${data_base_dir}/$(basename "${cram_url}")"
-        bam=${cram/.cram/.bam}
-        info "URL input so downloading [${cram_url}]"
-        gsutil -u "${gcp_user_project}" -mq cp "${cram_url}" "${cram}" || die "Unable to download ${cram}"
-    fi
+    cram="${data_base_dir}/$(basename "${cram_url}")"
+    bam=${cram/.cram/.bam}
+
+    info "URL input so downloading [${cram_url}]"
+    gsutil -u "${gcp_user_project}" -mq cp "${cram_url}" "${cram}" || die "Unable to download ${cram}"
 
     if [[ "${cram}" =~ cram$ ]]; then
         convert_cram_to_bam "${cram}" "${bam}" || exit 1
