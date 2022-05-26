@@ -33,12 +33,15 @@ main() {
 
     # Set reference genome files
     info "Downloading reference genome"
-    wget https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta \
+    wget -nv https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta \
         || die "Could not download Homo_sapiens_assembly38.fasta"
-    wget https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai \
+    info "Downloading reference genome index"
+    wget -nv https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai \
         || die "Could not download Homo_sapiens_assembly38.fasta.fai"
-    wget https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.ref_cache.tar.gz \
+    info "Downloading reference genome cache"
+    wget -nv https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.ref_cache.tar.gz \
         || die "Could not download Homo_sapiens_assembly38.ref_cache.tar.gz"
+    info "Untarring reference genome cache"
     tar xzf Homo_sapiens_assembly38.ref_cache.tar.gz 2>/dev/null || die "Could not untar Homo_sapiens_assembly38.ref_cache.tar.gz"
 
     info "Setting up environment variables for reference genome"
