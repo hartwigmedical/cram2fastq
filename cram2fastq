@@ -39,7 +39,7 @@ main() {
         || die "Could not download Homo_sapiens_assembly38.fasta.fai"
     wget https://storage.googleapis.com/gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.ref_cache.tar.gz \
         || die "Could not download Homo_sapiens_assembly38.ref_cache.tar.gz"
-    tar xzf Homo_sapiens_assembly38.ref_cache.tar.gz || die "Could not untar Homo_sapiens_assembly38.ref_cache.tar.gz"
+    tar xzf Homo_sapiens_assembly38.ref_cache.tar.gz 2>/dev/null || die "Could not untar Homo_sapiens_assembly38.ref_cache.tar.gz"
 
     info "Setting up environment variables for reference genome"
     ref_path="$(pwd)/ref/cache/%2s/%2s/%s:http://www.ebi.ac.uk/ena/cram/md5/%s"
@@ -130,7 +130,7 @@ convert_bam_to_fastq() {
     rm "${bam}" || die "Could not delete the unsorted BAM: ${bam}"
 
     info "Running SamToFastq for bam file: $(basename "${sorted_bam}")"
-    java -Xmx55G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${sorted_bam}" \
+    java -Xmx55G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${sorted_bam}" 2>&1 \
         || die "SamToFastq failed"
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
