@@ -118,7 +118,7 @@ convert_bam_to_fastq() {
     fi
 
     info "Running SamToFastq for bam file: $(basename "${bam}")"
-    java -Xmx31G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}" \
+    java -Xmx31G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}" 2>&1 \
         || die "SamToFastq failed"
 
     info "Renaming FASTQ files to standard format"
