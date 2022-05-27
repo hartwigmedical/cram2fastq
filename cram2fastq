@@ -136,6 +136,9 @@ convert_bam_to_fastq() {
     java -Xmx55G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${sorted_bam}" 2>&1 \
         || die "SamToFastq failed"
 
+    info "Delete sorted BAM"
+    rm "${sorted_bam}" || die "Could not delete the sorted BAM: ${sorted_bam}"
+
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
     find "${out_dir}" -name "*.fastq" -exec pigz {} + || die "Could not compress FASTQ files with pigz"
 
