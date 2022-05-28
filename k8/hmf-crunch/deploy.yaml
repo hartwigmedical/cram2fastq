@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: VAR_POD_NAME
-          image: eu.gcr.io/hmf-build/cram2fastq_pmc_with_sort:1.5
+          image: eu.gcr.io/hmf-build/cram2fastq_pmc_with_sort:1.6
           imagePullPolicy: Always
           args: ["VAR_GCP_USER_PROJECT", "VAR_CRAM_URL", "VAR_OUTPUT_BUCKET", "VAR_SAMPLE_NAME"]
           resources:
