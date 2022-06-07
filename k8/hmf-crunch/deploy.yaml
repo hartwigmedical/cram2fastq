@@ -11,14 +11,14 @@ spec:
     spec:
       containers:
         - name: VAR_POD_NAME
-          image: eu.gcr.io/hmf-build/cram2fastq_pmc_with_sort:1.6
+          image: eu.gcr.io/hmf-build/cram2fastq_pmc_with_sort:1.7
           imagePullPolicy: Always
           args: ["VAR_GCP_USER_PROJECT", "VAR_CRAM_URL", "VAR_OUTPUT_BUCKET", "VAR_SAMPLE_NAME"]
           resources:
             requests:
-              memory: "55Gi"
+              memory: "50Gi"
             limits:
-              memory: "55Gi"
+              memory: "50Gi"
       nodeSelector:
         pool: large-mem-pool-1
       affinity:
