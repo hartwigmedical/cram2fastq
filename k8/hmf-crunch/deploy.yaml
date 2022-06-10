@@ -17,8 +17,10 @@ spec:
           resources:
             requests:
               memory: "50Gi"
+              cpu: "15.5"
             limits:
               memory: "50Gi"
+              cpu: "15.5"
       nodeSelector:
         pool: large-mem-pool-1
       affinity:
