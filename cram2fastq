@@ -5,7 +5,7 @@ cram_url=$2 # can be GCP url or local file
 bucket=$3 # must be the GCP url of a bucket or directory
 new_name=$4 # optional new sample name
 
-threads=$(($(grep -c processor /proc/cpuinfo) * 99 / 100 ))
+threads=$(($(grep -c processor /proc/cpuinfo) * 9 / 10 ))
 samtools="samtools"
 picard="picard.jar"
 gsutil="gsutil"
