@@ -4,6 +4,7 @@ gcp_user_project=$1 # optional new sample name
 cram=$2 # can be GCP url or local file
 bucket=$3 # must be the GCP url of a bucket or directory
 new_name=$4 # optional new sample name
+sort_bam=$5 # whether to sort BAM before running SamToFastq
 
 threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
 samtools="samtools"
@@ -45,11 +46,9 @@ main() {
 
     if [[ "${cram}" =~ cram$ ]]; then
         convert_cram_to_bam "${cram}" "${bam}" || exit 1
-        info "Deleting local copy of cram"
-        rm "${cram}" || die "Could not delete the local copy of the cram: ${cram}"
     fi
 
-    convert_bam_to_fastq "${bam}" "${fastq_dir}" || exit 1
+    convert_bam_to_fastq "${bam}" "${fastq_dir}" "${sort_bam}" || exit 1
 
     if [[ "${new_name}" != "" ]]; then
         info "Renaming compressed FASTQ files to include provided sample name"
@@ -101,11 +100,15 @@ convert_cram_to_bam() {
 
     info "Running diff on flagstats"
     diff "${cram_flagstat}" "${bam_flagstat}" || die "Flagstat diff failed: check result before using downstream!!"
+
+    info "Deleting local copy of cram"
+    rm "${cram}" || die "Could not delete the local copy of the cram: ${cram}"
 }
 
 convert_bam_to_fastq() {
     local bam=$1 && shift
     local out_dir=$1 && shift
+    local sort_bam=$1 && shift
 
     info "Converting ${bam} to FASTQ"
 
@@ -117,9 +120,24 @@ convert_bam_to_fastq() {
         die "Exiting because renaming of fastq files will probably fail"
     fi
 
-    info "Running SamToFastq for bam file: $(basename "${bam}")"
-    java -Xmx31G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam}" 2>&1 \
+    if [[ "${sort_bam}" == "TRUE" ]]; then
+      info "Sort BAM by read name"
+      bam_to_convert="${bam/.bam/.sorted.bam}"
+      ${samtools} sort -n -@ "${threads}" -o "${bam_to_convert}" "${bam}" || die "Could not sort BAM by read name"
+
+      info "Delete unsorted BAM"
+      rm "${bam}" || die "Could not delete the unsorted BAM: ${bam}"
+    else
+      info "Don't sort BAM by read name"
+      bam_to_convert="${bam}"
+    fi
+
+    info "Running SamToFastq for bam file: $(basename "${bam_to_convert}")"
+    java -Xmx31G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam_to_convert}" 2>&1 \
         || die "SamToFastq failed"
+
+    info "Delete BAM"
+    rm "${bam_to_convert}" || die "Could not delete the BAM: ${bam_to_convert}"
 
     info "Renaming FASTQ files to standard format"
     find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
