@@ -40,6 +40,9 @@ function run() {
     # Make sure correct credentials are available
     gcloud container clusters get-credentials research-cluster-prod-1 --region europe-west4 --project hmf-crunch || exit 1
 
+    scripts_dir=$(dirname "$0") || exit 1
+    deploy_yaml=${scripts_dir}/k8/hmf-crunch/deploy.yaml
+
     sed \
     -e "s/VAR_POD_NAME/${clean_pod_name}/g" \
     -e "s/VAR_CRAM_URL/${cram_url_for_sed}/g" \
@@ -47,7 +50,7 @@ function run() {
     -e "s/VAR_SAMPLE_NAME/${sample_name}/g" \
     -e "s/VAR_SORT_BAM/${sort_bam}/g" \
     -e "s/VAR_GCP_USER_PROJECT/${gcp_user_project}/g" \
-    k8/hmf-crunch/deploy.yaml \
+    ${deploy_yaml} \
     | kubectl create -f -
 }
 
