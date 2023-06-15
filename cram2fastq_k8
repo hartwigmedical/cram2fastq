@@ -32,7 +32,13 @@ function run() {
       echo "[ERROR] 'sort_bam' variable can only be equal to '', 'TRUE' or 'FALSE'" >&2 && exit 1
     fi
 
-    pod_name="$(echo "cram2fq-${sample_name}" | awk '{print tolower($0)}')"
+    if [[ "${sample_name}" != "" ]]; then
+      pod_sample_name=sample_name
+    else
+      file_name=$(echo "${cram_url}" | sed 's/\//\n/g' | tail -n1) || die "Could not extract the file name from CRAM/BAM URL"
+      pod_sample_name="${file_name%.*}"
+    fi
+    pod_name="$(echo "cram2fq-${pod_sample_name}" | awk '{print tolower($0)}' | tr '_' '-' | tr '.' '-')"
     clean_pod_name="$(echo "${pod_name}" | tr '_' '-' | tr '[:upper:]' '[:lower:]' | tr '.' '-')"
     cram_url_for_sed="$(echo "${cram_url}" | sed 's/\//\\\//g')"
     out_bucket_for_sed="$(echo "${out_bucket}" | sed 's/\//\\\//g')"
