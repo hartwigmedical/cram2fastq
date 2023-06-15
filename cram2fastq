@@ -5,6 +5,7 @@ cram=$2 # can be GCP url or local file
 bucket=$3 # must be the GCP url of a bucket or directory
 new_name=$4 # optional new sample name
 sort_bam=$5 # whether to sort BAM before running SamToFastq
+non_standard_input=$6  # skip fixing FASTQ file name format
 
 threads=$(($(grep -c processor /proc/cpuinfo) * 8 / 10 ))
 samtools="samtools"
@@ -48,7 +49,7 @@ main() {
         convert_cram_to_bam "${cram}" "${bam}" || exit 1
     fi
 
-    convert_bam_to_fastq "${bam}" "${fastq_dir}" "${sort_bam}" || exit 1
+    convert_bam_to_fastq "${bam}" "${fastq_dir}" "${sort_bam}" "${non_standard_input}" || exit 1
 
     if [[ "${new_name}" != "" ]]; then
         info "Renaming compressed FASTQ files to include provided sample name"
@@ -109,15 +110,18 @@ convert_bam_to_fastq() {
     local bam=$1 && shift
     local out_dir=$1 && shift
     local sort_bam=$1 && shift
+    local non_standard_input=$1 && shift
 
     info "Converting ${bam} to FASTQ"
 
     # double check format of RG/ID tags in header
-    unexpected_read_group_count=$(samtools view -H "${bam}" | grep "^@RG" | grep -vcP "_L00[1-8]_" )
-    if [[ "${unexpected_read_group_count}" -gt 0 ]]; then
-        warn "There are RG ID header lines in BAM without the expected pattern present (_L00[1-8]_):"
-        ${samtools} view -H "${bam}" | grep "^@RG"
-        die "Exiting because renaming of fastq files will probably fail"
+    if [[ "${non_standard_input}" != "TRUE" ]]; then
+      unexpected_read_group_count=$(samtools view -H "${bam}" | grep "^@RG" | grep -vcP "_L00[1-8]_" )
+      if [[ "${unexpected_read_group_count}" -gt 0 ]]; then
+          warn "There are RG ID header lines in BAM without the expected pattern present (_L00[1-8]_):"
+          ${samtools} view -H "${bam}" | grep "^@RG"
+          die "Exiting because renaming of fastq files will probably fail"
+      fi
     fi
 
     if [[ "${sort_bam}" == "TRUE" ]]; then
@@ -139,19 +143,21 @@ convert_bam_to_fastq() {
     info "Delete BAM"
     rm "${bam_to_convert}" || die "Could not delete the BAM: ${bam_to_convert}"
 
-    info "Renaming FASTQ files to standard format"
-    find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
-        old_name=$(basename "${fastq_path}")
-        new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
-        # Fix incorrect fastq names of the forms *_R1_.fastq and *_R2_.fastq
-        new_name="${new_name//"_.fastq"/"_001.fastq"}"
+    if [[ "${non_standard_input}" != "TRUE" ]]; then
+      info "Renaming FASTQ files to standard format"
+      find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
+          old_name=$(basename "${fastq_path}")
+          new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
+          # Fix incorrect fastq names of the forms *_R1_.fastq and *_R2_.fastq
+          new_name="${new_name//"_.fastq"/"_001.fastq"}"
 
-        new_path="${out_dir}/${new_name}"
-        if [[ "${fastq_path}" != "${new_path}" ]]; then
-          mv "${fastq_path}" "${new_path}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
-          info "  Renamed ${old_name} to ${new_name}"
-        fi
-    done
+          new_path="${out_dir}/${new_name}"
+          if [[ "${fastq_path}" != "${new_path}" ]]; then
+            mv "${fastq_path}" "${new_path}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
+            info "  Renamed ${old_name} to ${new_name}"
+          fi
+      done
+    fi
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
     find "${out_dir}" -name "*.fastq" -exec pigz {} + || die "Could not compress FASTQ files with pigz"

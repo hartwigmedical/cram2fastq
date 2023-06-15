@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
 function printUsage(){
-    echo "USAGE: $0 run <gcp-user-project> <cram-url> <output-bucket> <sample-name> <sort-bam>"
-    echo "  <gcp-user-project> The GCP user project"
-    echo "  <cram-url>         The complete gs url to input CRAM"
-    echo "  <output-bucket>    The name of bucket to copy output fastq files to"
-    echo "  <sample-name>      The tag that FASTQ filenames will have as start"
-    echo "  <sort-bam>         (Optional) If set to 'TRUE' BAM will be sorted by read name before running SamToFastq."
-    echo "                     This increases runtime but lowers peak memory usage. Value needs to be empty, 'TRUE' or 'FALSE'."
+    echo "USAGE: $0 run <gcp-user-project> <cram-url> <output-bucket> <sample-name> <sort-bam> <non-standard-input>"
+    echo "  <gcp-user-project>    The GCP user project"
+    echo "  <cram-url>            The complete gs url to input CRAM"
+    echo "  <output-bucket>       The name of bucket to copy output fastq files to"
+    echo "  <sample-name>         The tag that FASTQ filenames will have as start"
+    echo "  <sort-bam>            (Optional) If set to 'TRUE' BAM will be sorted by read name before running SamToFastq."
+    echo "                        This increases runtime but lowers peak memory usage. Value needs to be empty, 'TRUE' or 'FALSE'."
+    echo "  <non-standard-input>  (Optional) If set to 'TRUE' skip all checks and FASTQ renaming that expect an input with the standard Hartwig format."
     exit 1
 }
 
@@ -17,6 +18,7 @@ function run() {
     out_bucket=$1 && shift
     sample_name=$1 && shift
     sort_bam=$1 && shift
+    non_standard_input=$1 && shift
 
     # sanity checks
     if [[ ! "${cram_url}" =~ ^gs[-/:._a-zA-Z0-9]+$ ]]; then
@@ -30,6 +32,9 @@ function run() {
     fi
     if [[ "${sort_bam}" != "" && "${sort_bam}" != "TRUE" && "${sort_bam}" != "FALSE" ]]; then
       echo "[ERROR] 'sort_bam' variable can only be equal to '', 'TRUE' or 'FALSE'" >&2 && exit 1
+    fi
+    if [[ "${non_standard_input}" != "" && "${non_standard_input}" != "TRUE" && "${non_standard_input}" != "FALSE" ]]; then
+      echo "[ERROR] 'non_standard_input' variable can only be equal to '', 'TRUE' or 'FALSE'" >&2 && exit 1
     fi
 
     if [[ "${sample_name}" != "" ]]; then
@@ -55,6 +60,7 @@ function run() {
     -e "s/VAR_OUTPUT_BUCKET/${out_bucket_for_sed}/g" \
     -e "s/VAR_SAMPLE_NAME/${sample_name}/g" \
     -e "s/VAR_SORT_BAM/${sort_bam}/g" \
+    -e "s/VAR_NON_STANDARD_INPUT/${non_standard_input}/g" \
     -e "s/VAR_GCP_USER_PROJECT/${gcp_user_project}/g" \
     ${deploy_yaml} \
     | kubectl create -f -
