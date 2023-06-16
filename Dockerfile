@@ -1,16 +1,17 @@
 FROM google/cloud-sdk:379.0.0
 
 # add repo tools
-RUN apt-get update  \
+RUN curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
+    && apt-get update  \
     && apt-get --yes install \
     wget=1.20.1-1.1 \
     pigz=2.4-1 \
     openjdk-11-jre=11.0.14+9-1~deb10u1 \
     # necessary for building samtools
-    libncurses5-dev=6.1+20181013-2+deb10u2 \
-    zlib1g-dev=1:1.2.11.dfsg-1 \
+    libncurses5-dev=6.1+20181013-2+deb10u3 \
+    zlib1g-dev=1:1.2.11.dfsg-1+deb10u2 \
     libbz2-dev=1.0.6-9.2~deb10u1 \
-    liblzma-dev=5.2.4-1 \
+    liblzma-dev=5.2.4-1+deb10u1 \
     libcurl4-openssl-dev=7.64.0-4+deb10u2
 
 # add non-repo tools
