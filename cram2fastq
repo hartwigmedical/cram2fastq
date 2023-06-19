@@ -22,10 +22,11 @@ main() {
     info "Starting ${script_name}"
 
     if [[ "${non_standard_input}" == "TRUE" ]]; then
-      base_file_name=$(basename "${cram}" | cut -d"." -f1)
-      gcp_out_path="${bucket}/${base_file_name}_FASTQ"
+      file_name=$(basename "${cram}") || die "Could not get base file name: ${cram}"
+      sample="${file_name%.*}"
+      gcp_out_path="${bucket}/${sample}_FASTQ"
     else
-      sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1)
+      sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1) || die "Could not get sample name: ${cram}"
       gcp_out_path="${bucket}/${sample}_FASTQ"
     fi
 
