@@ -40,7 +40,7 @@ function run() {
     if [[ "${sample_name}" != "" ]]; then
       pod_sample_name=sample_name
     else
-      file_name=$(echo "${cram_url}" | sed 's/\//\n/g' | tail -n1) || die "Could not extract the file name from CRAM/BAM URL"
+      file_name=$(basename "${cram_url}") || die "Could not extract the file name from CRAM/BAM URL"
       pod_sample_name="${file_name%.*}"
     fi
     pod_name="$(echo "cram2fq-${pod_sample_name}" | awk '{print tolower($0)}' | tr '_' '-' | tr '.' '-')"
