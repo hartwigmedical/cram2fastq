@@ -38,7 +38,7 @@ function run() {
     fi
 
     if [[ "${sample_name}" != "" ]]; then
-      pod_sample_name=sample_name
+      pod_sample_name="${sample_name}"
     else
       file_name=$(basename "${cram_url}") || die "Could not extract the file name from CRAM/BAM URL"
       pod_sample_name="${file_name%.*}"
