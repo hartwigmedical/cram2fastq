@@ -99,7 +99,7 @@ convert_cram_to_bam() {
     local reference_fasta=$1 && shift
 
     info "Converting ${cram} to BAM"
-    ${samtools} view --reference "${reference_fasta}" --ignore_md5 -O bam -o "${bam}" --threads "${threads}" "${cram}" || die "Could not convert CRAM to BAM"
+    ${samtools} view --input-fmt-option ignore_md5=1 --reference "${reference_fasta}" -O bam -o "${bam}" --threads "${threads}" "${cram}" || die "Could not convert CRAM to BAM"
 
     info "Creating flagstat for ${cram}"
     cram_flagstat="${cram}.flagstat"

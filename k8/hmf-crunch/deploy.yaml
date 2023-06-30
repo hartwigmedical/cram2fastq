@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: VAR_POD_NAME
-          image: eu.gcr.io/hmf-build/cram2fastq-force-hs37d5:0.3
+          image: eu.gcr.io/hmf-build/cram2fastq-force-hs37d5:0.4
           imagePullPolicy: Always
           args: ["VAR_GCP_USER_PROJECT", "VAR_CRAM_URL", "VAR_OUTPUT_BUCKET", "VAR_SAMPLE_NAME", "VAR_SORT_BAM", "VAR_NON_STANDARD_INPUT"]
           resources:
