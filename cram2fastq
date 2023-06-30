@@ -122,7 +122,7 @@ convert_bam_to_fastq() {
 
     # double check format of RG/ID tags in header
     if [[ "${non_standard_input}" != "TRUE" ]]; then
-      unexpected_read_group_count=$(samtools view -H "${bam}" | grep "^@RG" | grep -vcP "_L00[1-8]_" )
+      unexpected_read_group_count=$(${samtools} view -H "${bam}" | grep "^@RG" | grep -vcP "_L00[1-8]_" )
       if [[ "${unexpected_read_group_count}" -gt 0 ]]; then
           warn "There are RG ID header lines in BAM without the expected pattern present (_L00[1-8]_):"
           ${samtools} view -H "${bam}" | grep "^@RG"
