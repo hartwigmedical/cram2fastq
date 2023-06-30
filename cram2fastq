@@ -40,6 +40,15 @@ main() {
         [[ "${new_name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "New name can only contain [a-zA-Z0-9] or '-' (${new_name})"
     fi
 
+    # set reference genome files
+    info "Downloading reference genome"
+    local reference_fasta="$HOME/hs37d5.fa"
+    wget -nv http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz |
+        zcat - > "${reference_fasta}" \
+        || die "Could not download hs37d5.fa.gz"
+    info "Creating reference genome index"
+    "${samtools}" faidx "${reference_fasta}" || die "Could not create FASTA index file"
+
     # the work
     mkdir -p "${fastq_dir}"
 
@@ -52,10 +61,10 @@ main() {
     fi
 
     if [[ "${cram}" =~ cram$ ]]; then
-        convert_cram_to_bam "${cram}" "${bam}" || exit 1
+        convert_cram_to_bam "${cram}" "${bam}" "${reference_fasta}" || exit 1
     fi
 
-    convert_bam_to_fastq "${bam}" "${fastq_dir}" "${sort_bam}" "${non_standard_input}" || exit 1
+    convert_bam_to_fastq "${bam}" "${fastq_dir}" "${sort_bam}" "${non_standard_input}" "${reference_fasta}" || exit 1
 
     if [[ "${new_name}" != "" ]]; then
         info "Renaming compressed FASTQ files to include provided sample name"
@@ -87,9 +96,10 @@ rename_fastq_files() {
 convert_cram_to_bam() {
     local cram=$1 && shift
     local bam=$1 && shift
+    local reference_fasta=$1 && shift
 
     info "Converting ${cram} to BAM"
-    ${samtools} view -O bam -o "${bam}" --threads "${threads}" "${cram}" || die "Could not convert CRAM to BAM"
+    ${samtools} view --reference "${reference_fasta}" --ignore_md5 -O bam -o "${bam}" --threads "${threads}" "${cram}" || die "Could not convert CRAM to BAM"
 
     info "Creating flagstat for ${cram}"
     cram_flagstat="${cram}.flagstat"
@@ -117,15 +127,16 @@ convert_bam_to_fastq() {
     local out_dir=$1 && shift
     local sort_bam=$1 && shift
     local non_standard_input=$1 && shift
+    local reference_fasta=$1 && shift
 
     info "Converting ${bam} to FASTQ"
 
     # double check format of RG/ID tags in header
     if [[ "${non_standard_input}" != "TRUE" ]]; then
-      unexpected_read_group_count=$(samtools view -H "${bam}" | grep "^@RG" | grep -vcP "_L00[1-8]_" )
+      unexpected_read_group_count=$(${samtools} view --reference "${reference_fasta}" -H "${bam}" | grep "^@RG" | grep -vcP "_L00[1-8]_" )
       if [[ "${unexpected_read_group_count}" -gt 0 ]]; then
           warn "There are RG ID header lines in BAM without the expected pattern present (_L00[1-8]_):"
-          ${samtools} view -H "${bam}" | grep "^@RG"
+          ${samtools} view --reference "${reference_fasta}" -H "${bam}" | grep "^@RG"
           die "Exiting because renaming of fastq files will probably fail"
       fi
     fi
@@ -143,7 +154,7 @@ convert_bam_to_fastq() {
     fi
 
     info "Running SamToFastq for bam file: $(basename "${bam_to_convert}")"
-    java -Xmx31G -jar "${picard}" SamToFastq ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam_to_convert}" 2>&1 \
+    java -Xmx31G -jar "${picard}" SamToFastq  REFERENCE_SEQUENCE="${reference_fasta}" ODIR="${out_dir}" OPRG=true RGT=ID NON_PF=true RC=true I="${bam_to_convert}" 2>&1 \
         || die "SamToFastq failed"
 
     info "Delete BAM"
