@@ -43,7 +43,7 @@ main() {
     # set reference genome files
     info "Downloading reference genome"
     local reference_fasta="$HOME/hs37d5.fa"
-    wget -nv http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz |
+    wget -O - -nv http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/phase2_reference_assembly_sequence/hs37d5.fa.gz |
         zcat - > "${reference_fasta}" \
         || die "Could not download hs37d5.fa.gz"
     info "Creating reference genome index"
