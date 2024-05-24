@@ -148,19 +148,29 @@ convert_bam_to_fastq() {
     rm "${bam_to_convert}" || die "Could not delete the BAM: ${bam_to_convert}"
 
     if [[ "${non_standard_input}" != "TRUE" ]]; then
-      info "Renaming FASTQ files to standard format"
-      find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
-          old_name=$(basename "${fastq_path}")
-          new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
-          # Fix incorrect fastq names of the forms *_R1_.fastq and *_R2_.fastq
-          new_name="${new_name//"_.fastq"/"_001.fastq"}"
+        info "Renaming FASTQ files to standard format"
+        find "${out_dir}" -name "*.fastq" | while read -r fastq_path; do
+            old_name=$(basename "${fastq_path}")
 
-          new_path="${out_dir}/${new_name}"
-          if [[ "${fastq_path}" != "${new_path}" ]]; then
-            mv "${fastq_path}" "${new_path}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
-            info "  Renamed ${old_name} to ${new_name}"
-          fi
-      done
+            dash_only_old_name="${old_name//[^_]}"
+            dash_count="${#dash_only_old_name}"
+            if [[ "${dash_count}" == "5" ]]; then
+                new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print $1"_"$2"_"$3"_"$4"_R"$6"_"$5".fastq" }')
+            elif [[ "${dash_count}" == "4" ]]; then
+                new_name=$(echo "${old_name}" | sed 's#\.fastq##g' - | awk 'BEGIN { FS = "_" } ; { print "SAMPLE_"$1"_"$2"_"$3"_R"$5"_"$4".fastq" }')
+            else
+                die "Number of dashes in ${old_name} is unexpected (i.e. not 5 or 4). Cannot rename file to standard format."
+            fi
+
+            # Fix incorrect fastq names of the forms *_R1_.fastq and *_R2_.fastq
+            new_name="${new_name//"_.fastq"/"_001.fastq"}"
+
+            new_path="${out_dir}/${new_name}"
+            if [[ "${fastq_path}" != "${new_path}" ]]; then
+                mv "${fastq_path}" "${new_path}" || die "Could not rename FASTQ file to the proper name: '${fastq_path}' to '${new_name}'"
+                info "  Renamed ${old_name} to ${new_name}"
+            fi
+        done
     fi
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
