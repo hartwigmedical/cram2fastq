@@ -21,15 +21,6 @@ script_name=$(basename "$0")
 main() {
     info "Starting ${script_name}"
 
-    if [[ "${non_standard_input}" == "TRUE" ]]; then
-      file_name=$(basename "${cram}") || die "Could not get base file name: ${cram}"
-      sample="${file_name%.*}"
-      gcp_out_path="${bucket}/${sample}_FASTQ"
-    else
-      sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1) || die "Could not get sample name: ${cram}"
-      gcp_out_path="${bucket}/${sample}_FASTQ"
-    fi
-
     # sanity checks
     tool_exists_or_die "${samtools}"
     tool_exists_or_die "${gsutil}"
@@ -60,8 +51,11 @@ main() {
     if [[ "${new_name}" != "" ]]; then
         info "Renaming compressed FASTQ files to include provided sample name"
         rename_fastq_files "${fastq_dir}" "${new_name}" || exit 1
-        gcp_out_path="${bucket}/${new_name}_FASTQ"
     fi
+
+    info "Determine gcp out path"
+    gcp_out_path=$(determine_gcp_out_path "${bucket}" "${new_name}" "${cram}" "${non_standard_input}") \
+        || die "Could not determine output bucket"
 
     info "Copying FASTQ to GCP"
     ${gsutil} -u "${gcp_user_project}" -mq cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/" || die "Unable to upload FASTQ files"
@@ -167,6 +161,25 @@ convert_bam_to_fastq() {
 
     info "Compressing FASTQ files in ${out_dir} (using pigz)"
     find "${out_dir}" -name "*.fastq" -exec pigz {} + || die "Could not compress FASTQ files with pigz"
+}
+
+determine_gcp_out_path() {
+    local bucket=$1 && shift
+    local new_name=$1 && shift
+    local cram=$1 && shift
+    local non_standard_input=$1 && shift
+
+    if [[ "${new_name}" != "" ]]; then
+        gcp_out_path="${bucket}/${new_name}_FASTQ"
+    elif [[ "${non_standard_input}" == "TRUE" ]]; then
+        file_name=$(basename "${cram}") || die "Could not get base file name: ${cram}"
+        sample="${file_name%.*}"
+        gcp_out_path="${bucket}/${sample}_FASTQ"
+    else
+        sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1) || die "Could not get sample name: ${cram}"
+        gcp_out_path="${bucket}/${sample}_FASTQ"
+    fi
+    echo "${gcp_out_path}"
 }
 
 msg() {
