@@ -71,9 +71,9 @@ rename_fastq_files() {
     local dir=$1 && shift
     local new_name=$1 && shift
     find "${dir}" -name "*.fastq.gz" | while read -r old_path; do
-        old_file=$(basename "${old_path}")
-        old_name=$(echo "${old_file}" | cut -d"_" -f1)
-        new_file=${old_file/${old_name}/${new_name}}
+        old_file=$(basename "${old_path}") || die "Could not get file name of ${old_path}"
+        old_file_name_end=$(echo "${old_file}" | cut -d"_" -f2-) || die "Could not get file name base of ${old_file}"
+        new_file="${new_name}_${old_file_name_end}"
         new_path="${dir}/${new_file}"
         if [[ "${old_path}" != "${new_path}" ]]; then
           mv "${old_path}" "${new_path}" || die "Could not rename FASTQ file from '${old_path}' to '${new_path}'"
