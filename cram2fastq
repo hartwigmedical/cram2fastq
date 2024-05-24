@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 gcp_user_project=$1 # optional new sample name
-cram=$2 # can be GCP url or local file
+cram_or_bam=$2 # can be GCP url or local file, and CRAM or BAM
 bucket=$3 # must be the GCP url of a bucket or directory
 new_name=$4 # optional new sample name
 sort_bam=$5 # whether to sort BAM before running SamToFastq
@@ -14,7 +14,6 @@ gsutil="gsutil"
 
 data_base_dir="$HOME/data"
 fastq_dir="${data_base_dir}/fastq"
-bam=${cram/.cram/.bam}
 
 script_name=$(basename "$0")
 
@@ -25,8 +24,8 @@ main() {
     tool_exists_or_die "${samtools}"
     tool_exists_or_die "${gsutil}"
     file_exists_or_die "${picard}"
-    [[ -n "${cram}" && -n "${bucket}" ]] || die "Expected cram and bucket argument. cram:'${cram}', bucket:'${bucket}'"
-    [[ "${cram}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram})"
+    [[ -n "${cram_or_bam}" && -n "${bucket}" ]] || die "Expected cram and bucket argument. cram:'${cram_or_bam}', bucket:'${bucket}'"
+    [[ "${cram_or_bam}" =~ (cram|bam)$ ]] || die "Expected 'cram' or 'bam' extension (${cram_or_bam})"
     if [[ "${new_name}" != "" ]]; then
         [[ "${new_name}" =~ ^[a-zA-Z0-9\-]+$ ]] || die "New name can only contain [a-zA-Z0-9] or '-' (${new_name})"
     fi
@@ -34,32 +33,37 @@ main() {
     # the work
     mkdir -p "${fastq_dir}"
 
-    if [[ "${cram}" =~ ^gs ]]; then
-        cram_url="${cram}"
-        cram="${data_base_dir}/$(basename "${cram_url}")"
-        bam=${cram/.cram/.bam}
-        info "URL input so downloading [${cram_url}]"
-        gsutil -u "${gcp_user_project}" -mq cp "${cram_url}" "${cram}" || die "Unable to download ${cram}"
+    if [[ "${cram_or_bam}" =~ ^gs ]]; then
+        cram_or_bam_url="${cram_or_bam}"
+        local_cram_or_bam="${data_base_dir}/$(basename "${cram_or_bam_url}")"
+        info "URL input so downloading [${cram_or_bam_url}]"
+        gsutil -u "${gcp_user_project}" -mq cp "${cram_or_bam_url}" "${local_cram_or_bam}" || die "Unable to download ${cram_or_bam_url}"
+    else
+        local_cram_or_bam="${cram_or_bam}"
     fi
 
-    if [[ "${cram}" =~ cram$ ]]; then
-        convert_cram_to_bam "${cram}" "${bam}" || exit 1
+    if [[ "${local_cram_or_bam}" =~ cram$ ]]; then
+        local_cram="${local_cram_or_bam}"
+        local_bam=${local_cram_or_bam/.cram/.bam}
+        convert_cram_to_bam "${local_cram}" "${local_bam}" || exit 1
+    else
+        local_bam="${local_cram_or_bam}"
     fi
 
-    convert_bam_to_fastq "${bam}" "${fastq_dir}" "${sort_bam}" "${non_standard_input}" || exit 1
+    convert_bam_to_fastq "${local_bam}" "${fastq_dir}" "${sort_bam}" "${non_standard_input}" || exit 1
 
     if [[ "${new_name}" != "" ]]; then
         info "Renaming compressed FASTQ files to include provided sample name"
         rename_fastq_files "${fastq_dir}" "${new_name}" || exit 1
     fi
 
-    info "Determine gcp out path"
-    gcp_out_path=$(determine_gcp_out_path "${bucket}" "${new_name}" "${cram}" "${non_standard_input}") \
+    info "Determine GCP output bucket"
+    gcp_out_path=$(determine_gcp_out_path "${bucket}" "${new_name}" "${local_bam}" "${non_standard_input}") \
         || die "Could not determine output bucket"
 
     info "Copying FASTQ to GCP"
-    ${gsutil} -u "${gcp_user_project}" -mq cp "${fastq_dir}/*.fastq.gz" "gs://${gcp_out_path}/" || die "Unable to upload FASTQ files"
-    info "Output in gs://${gcp_out_path}"
+    ${gsutil} -u "${gcp_user_project}" -mq cp "${fastq_dir}/*.fastq.gz" "${gcp_out_path}/" || die "Unable to upload FASTQ files"
+    info "Output in ${gcp_out_path}"
     info "Finished ${script_name}"
 }
 
@@ -166,20 +170,18 @@ convert_bam_to_fastq() {
 determine_gcp_out_path() {
     local bucket=$1 && shift
     local new_name=$1 && shift
-    local cram=$1 && shift
+    local local_bam=$1 && shift
     local non_standard_input=$1 && shift
 
     if [[ "${new_name}" != "" ]]; then
-        gcp_out_path="${bucket}/${new_name}_FASTQ"
+        sample="${new_name}"
     elif [[ "${non_standard_input}" == "TRUE" ]]; then
-        file_name=$(basename "${cram}") || die "Could not get base file name: ${cram}"
+        file_name=$(basename "${local_bam}") || die "Could not get base file name: ${local_bam}"
         sample="${file_name%.*}"
-        gcp_out_path="${bucket}/${sample}_FASTQ"
     else
-        sample=$(basename "${cram}" | cut -d"." -f1 | cut -d"_" -f1) || die "Could not get sample name: ${cram}"
-        gcp_out_path="${bucket}/${sample}_FASTQ"
+        sample=$(basename "${local_bam}" | cut -d"." -f1 | cut -d"_" -f1) || die "Could not get sample name: ${local_bam}"
     fi
-    echo "${gcp_out_path}"
+    echo "gs://${bucket}/${sample}_FASTQ"
 }
 
 msg() {
