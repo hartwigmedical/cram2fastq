@@ -83,12 +83,12 @@ gcloud auth configure-docker
 
 Then build an image and push it:
 ```shell script
-docker build . -t eu.gcr.io/hmf-build/cram2fastq:your_name.1(.2,.3)
-docker push eu.gcr.io/hmf-build/cram2fastq:your_name.1(.2,.3)
+docker build . -t europe-west4-docker.pkg.dev/hmf-build/hmf-docker/cram2fastq:your_name.1(.2,.3)
+docker push europe-west4-docker.pkg.dev/hmf-build/hmf-docker/cram2fastq:your_name.1(.2,.3)
 ```
 
 Note we added the following to the tag in part #1:
-- eu.gcr.io, this is the EU docker registry in GCP
+- europe-west4-docker.pkg.dev/hmf-build/hmf-docker, this is the EU docker registry in GCP
 - a "version" after the image name. Increment your version after each change to make sure its not getting cached anywhere.
 
 Now we can run our image anywhere with Docker, including a Kubernetes cluster.
